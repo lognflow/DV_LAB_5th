@@ -1,0 +1,667 @@
+Entity,Code,Year,Forest expansion
+Africa,OWID_AFR,1990,202100
+Africa,OWID_AFR,2000,287050
+Africa,OWID_AFR,2010,310980
+Africa,OWID_AFR,2015,330320
+Africa,OWID_AFR,2020,261230
+Algeria,DZA,1990,30030
+Algeria,DZA,2000,27370
+Algeria,DZA,2010,33120
+Algeria,DZA,2015,10890
+Algeria,DZA,2020,8000
+Angola,AGO,2000,410
+Angola,AGO,2010,410
+Angola,AGO,2015,410
+Angola,AGO,2020,410
+Argentina,ARG,1990,31100
+Argentina,ARG,2000,11300
+Argentina,ARG,2010,19400
+Argentina,ARG,2015,2200
+Argentina,ARG,2020,15800
+Asia,OWID_ASI,1990,3179040
+Asia,OWID_ASI,2000,3750350
+Asia,OWID_ASI,2010,3548840
+Asia,OWID_ASI,2015,3385030
+Asia,OWID_ASI,2020,2758890
+Australia,AUS,1990,478540
+Australia,AUS,2000,493280
+Australia,AUS,2010,709190
+Australia,AUS,2015,604180
+Austria,AUT,1990,11710
+Austria,AUT,2000,10000
+Austria,AUT,2010,7950
+Austria,AUT,2015,7950
+Austria,AUT,2020,7950
+Azerbaijan,AZE,1990,5200
+Azerbaijan,AZE,2000,43250
+Azerbaijan,AZE,2010,90720
+Azerbaijan,AZE,2015,106400
+Bahrain,BHR,1990,0
+Bahrain,BHR,2000,0
+Bahrain,BHR,2010,0
+Bahrain,BHR,2015,0
+Bahrain,BHR,2020,0
+Bangladesh,BGD,2010,17200
+Belarus,BLR,1990,55040
+Belarus,BLR,2000,33310
+Belarus,BLR,2010,24000
+Belarus,BLR,2015,30320
+Belgium,BEL,2010,1700
+Belgium,BEL,2015,3050
+Benin,BEN,2000,4660
+Benin,BEN,2010,4660
+Benin,BEN,2015,26040
+Benin,BEN,2020,18890
+Bhutan,BTN,1990,9930
+Bhutan,BTN,2000,10120
+Bhutan,BTN,2010,2320
+Bhutan,BTN,2015,830
+Bhutan,BTN,2020,0
+Brazil,BRA,1990,661480
+Brazil,BRA,2000,1459900
+Brazil,BRA,2010,0
+Brazil,BRA,2015,0
+Brazil,BRA,2020,0
+Bulgaria,BGR,1990,4800
+Bulgaria,BGR,2000,36200
+Bulgaria,BGR,2010,19200
+Bulgaria,BGR,2015,12000
+Bulgaria,BGR,2020,12600
+Burkina Faso,BFA,1990,3720
+Burkina Faso,BFA,2000,11060
+Burkina Faso,BFA,2010,9600
+Burkina Faso,BFA,2015,8510
+Burkina Faso,BFA,2020,8050
+Cameroon,CMR,1990,300
+Cameroon,CMR,2000,2000
+Cameroon,CMR,2010,2000
+Cameroon,CMR,2015,2000
+Cameroon,CMR,2020,2000
+Canada,CAN,1990,7330
+Canada,CAN,2000,563460
+Canada,CAN,2010,560790
+Canada,CAN,2015,230400
+Canada,CAN,2020,40700
+Cayman Islands,CYM,1990,0
+Cayman Islands,CYM,2000,0
+Cayman Islands,CYM,2010,0
+Cayman Islands,CYM,2015,0
+Cayman Islands,CYM,2020,0
+Chad,TCD,1990,300
+Chad,TCD,2000,300
+Chad,TCD,2010,300
+Chad,TCD,2015,300
+Chad,TCD,2020,300
+Chile,CHL,1990,71470
+Chile,CHL,2000,75570
+Chile,CHL,2010,47040
+Chile,CHL,2015,3250
+Chile,CHL,2020,6150
+China,CHN,1990,2313540
+China,CHN,2000,2673740
+China,CHN,2010,2266740
+China,CHN,2015,2094620.1
+China,CHN,2020,1885000
+Colombia,COL,1990,6870
+Colombia,COL,2000,24800
+Colombia,COL,2010,9580
+Colombia,COL,2015,15770
+Colombia,COL,2020,140
+Comoros,COM,1990,0
+Comoros,COM,2000,0
+Comoros,COM,2010,0
+Comoros,COM,2015,100
+Comoros,COM,2020,100
+Congo,COG,1990,0
+Congo,COG,2000,0
+Congo,COG,2010,0
+Congo,COG,2015,0
+Congo,COG,2020,14000
+Costa Rica,CRI,1990,18320
+Costa Rica,CRI,2000,7480
+Costa Rica,CRI,2010,24770
+Costa Rica,CRI,2015,8020.0005
+Costa Rica,CRI,2020,8020.0005
+Cote d'Ivoire,CIV,1990,6830
+Cote d'Ivoire,CIV,2000,23280
+Cote d'Ivoire,CIV,2010,29900
+Cote d'Ivoire,CIV,2015,62000
+Cote d'Ivoire,CIV,2020,11520
+Croatia,HRV,1990,3540
+Croatia,HRV,2000,3830
+Croatia,HRV,2010,490
+Croatia,HRV,2015,3470
+Croatia,HRV,2020,1460
+Cuba,CUB,1990,38700
+Cuba,CUB,2000,51040
+Cuba,CUB,2010,61930
+Cuba,CUB,2015,18490
+Cuba,CUB,2020,2190
+Czechia,CZE,1990,3360
+Czechia,CZE,2000,3360
+Czechia,CZE,2010,3360
+Czechia,CZE,2015,11680
+Czechia,CZE,2020,11680
+Democratic Republic of Congo,COD,1990,430
+Democratic Republic of Congo,COD,2000,600
+Democratic Republic of Congo,COD,2010,1850
+Democratic Republic of Congo,COD,2015,1080
+Democratic Republic of Congo,COD,2020,610
+Denmark,DNK,1990,4050.0002
+Denmark,DNK,2000,1670
+Denmark,DNK,2010,7900
+Denmark,DNK,2015,1370
+Denmark,DNK,2020,4260
+Djibouti,DJI,1990,0
+Djibouti,DJI,2000,0
+Djibouti,DJI,2010,50
+Djibouti,DJI,2015,230
+Djibouti,DJI,2020,50
+Dominican Republic,DOM,1990,22090
+Dominican Republic,DOM,2000,8810
+Dominican Republic,DOM,2010,19120
+Dominican Republic,DOM,2015,24700
+Dominican Republic,DOM,2020,31240
+Ecuador,ECU,1990,39770
+Ecuador,ECU,2000,36290
+Ecuador,ECU,2010,55390
+Ecuador,ECU,2015,18130
+Egypt,EGY,1990,0
+Egypt,EGY,2000,170
+Egypt,EGY,2010,0
+Egypt,EGY,2015,0
+Egypt,EGY,2020,30
+El Salvador,SLV,1990,6930
+El Salvador,SLV,2000,6930
+El Salvador,SLV,2010,5020
+El Salvador,SLV,2015,5770
+El Salvador,SLV,2020,5780
+Equatorial Guinea,GNQ,1990,0
+Equatorial Guinea,GNQ,2000,0
+Equatorial Guinea,GNQ,2010,0
+Equatorial Guinea,GNQ,2015,0
+Equatorial Guinea,GNQ,2020,0
+Estonia,EST,1990,3530
+Estonia,EST,2000,13820
+Estonia,EST,2010,25620
+Estonia,EST,2015,6730
+Estonia,EST,2020,2160
+Ethiopia,ETH,1990,18930
+Ethiopia,ETH,2000,18930
+Ethiopia,ETH,2010,22000
+Ethiopia,ETH,2015,34280
+Ethiopia,ETH,2020,34280
+Europe,OWID_EUR,1990,731580
+Europe,OWID_EUR,2000,1447310
+Europe,OWID_EUR,2010,767330
+Europe,OWID_EUR,2015,1491440
+Europe,OWID_EUR,2020,1123420
+European Union (27),OWID_EU27,1990,540600
+European Union (27),OWID_EU27,2000,435670
+European Union (27),OWID_EU27,2010,338850
+European Union (27),OWID_EU27,2015,351510
+European Union (27),OWID_EU27,2020,221930
+Falkland Islands,FLK,1990,0
+Falkland Islands,FLK,2000,0
+Falkland Islands,FLK,2010,0
+Falkland Islands,FLK,2015,0
+Falkland Islands,FLK,2020,0
+Faroe Islands,FRO,1990,0
+Faroe Islands,FRO,2000,0
+Faroe Islands,FRO,2010,0
+Faroe Islands,FRO,2015,0
+Faroe Islands,FRO,2020,0
+Finland,FIN,1990,9890
+Finland,FIN,2000,6480
+Finland,FIN,2010,8880
+Finland,FIN,2015,7520
+Finland,FIN,2020,0
+Gabon,GAB,1990,5250
+Gabon,GAB,2000,11980
+Gabon,GAB,2010,1920
+Gabon,GAB,2015,3990
+Gabon,GAB,2020,4970
+Gambia,GMB,1990,0
+Gambia,GMB,2000,0
+Gambia,GMB,2010,0
+Gambia,GMB,2015,0
+Gambia,GMB,2020,0
+Georgia,GEO,1990,830
+Georgia,GEO,2000,6180
+Georgia,GEO,2010,0
+Georgia,GEO,2015,0
+Georgia,GEO,2020,0
+Germany,DEU,1990,12200
+Germany,DEU,2000,11330
+Germany,DEU,2010,10680
+Germany,DEU,2015,9000
+Germany,DEU,2020,8000
+Gibraltar,GIB,1990,0
+Gibraltar,GIB,2000,0
+Gibraltar,GIB,2010,0
+Gibraltar,GIB,2015,0
+Gibraltar,GIB,2020,0
+Greenland,GRL,1990,0
+Greenland,GRL,2000,0
+Greenland,GRL,2010,0
+Greenland,GRL,2015,0
+Greenland,GRL,2020,0
+Guatemala,GTM,1990,17100
+Guatemala,GTM,2000,36480
+Guatemala,GTM,2010,96500
+Guatemala,GTM,2015,57630
+Guatemala,GTM,2020,47910
+Guinea,GIN,1990,2110
+Guinea,GIN,2000,2110
+Guinea,GIN,2010,2110
+Guinea,GIN,2015,1880
+Guinea,GIN,2020,1000
+Guyana,GUY,1990,0
+Guyana,GUY,2000,0
+Guyana,GUY,2010,0
+Guyana,GUY,2015,0
+Guyana,GUY,2020,0
+High-income countries,OWID_HIC,1990,1445970
+High-income countries,OWID_HIC,2000,3076960
+High-income countries,OWID_HIC,2010,2354420
+High-income countries,OWID_HIC,2015,3003780
+High-income countries,OWID_HIC,2020,2053910
+Honduras,HND,1990,15900
+Honduras,HND,2000,12250
+Honduras,HND,2010,22950
+Honduras,HND,2015,19950
+Honduras,HND,2020,20640
+Hungary,HUN,1990,11560
+Hungary,HUN,2000,14020
+Hungary,HUN,2010,4790
+Hungary,HUN,2015,2080
+Hungary,HUN,2020,9030
+Iceland,ISL,1990,1430
+Iceland,ISL,2000,1650
+Iceland,ISL,2010,900
+Iceland,ISL,2015,690
+Iceland,ISL,2020,960
+India,IND,1990,749300
+India,IND,2000,820000
+India,IND,2010,934800
+India,IND,2015,958000
+India,IND,2020,674000
+Iran,IRN,1990,0
+Iran,IRN,2000,0
+Iran,IRN,2010,0
+Iran,IRN,2015,0
+Iran,IRN,2020,0
+Iraq,IRQ,1990,1410
+Iraq,IRQ,2000,0
+Iraq,IRQ,2010,0
+Iraq,IRQ,2015,0
+Iraq,IRQ,2020,0
+Ireland,IRL,1990,17130
+Ireland,IRL,2000,10370
+Ireland,IRL,2010,6650
+Ireland,IRL,2015,4660
+Ireland,IRL,2020,5910
+Isle of Man,IMN,1990,0
+Isle of Man,IMN,2000,0
+Isle of Man,IMN,2010,0
+Isle of Man,IMN,2015,0
+Isle of Man,IMN,2020,0
+Italy,ITA,1990,45210
+Italy,ITA,2000,47160
+Italy,ITA,2010,48060
+Italy,ITA,2015,48520
+Italy,ITA,2020,48920
+Jamaica,JAM,1990,860
+Jamaica,JAM,2000,4420
+Jamaica,JAM,2010,4420
+Jamaica,JAM,2015,4420
+Jamaica,JAM,2020,4420
+Jersey,JEY,1990,0
+Jersey,JEY,2000,0
+Jersey,JEY,2010,0
+Jersey,JEY,2015,0
+Jersey,JEY,2020,0
+Jordan,JOR,1990,0
+Jordan,JOR,2000,0
+Jordan,JOR,2010,0
+Jordan,JOR,2015,0
+Jordan,JOR,2020,0
+Kazakhstan,KAZ,1990,15000
+Kazakhstan,KAZ,2000,50000
+Kazakhstan,KAZ,2010,75000
+Kazakhstan,KAZ,2015,50510
+Kazakhstan,KAZ,2020,35800
+Kuwait,KWT,1990,140
+Kuwait,KWT,2000,140
+Kuwait,KWT,2010,140
+Kuwait,KWT,2015,40
+Kuwait,KWT,2020,0
+Kyrgyzstan,KGZ,1990,4450
+Kyrgyzstan,KGZ,2000,4880
+Kyrgyzstan,KGZ,2010,4430
+Kyrgyzstan,KGZ,2015,1640
+Kyrgyzstan,KGZ,2020,60
+Latvia,LVA,1990,6800
+Latvia,LVA,2000,13510
+Latvia,LVA,2010,5610
+Latvia,LVA,2015,7550
+Latvia,LVA,2020,7150
+Lebanon,LBN,1990,0
+Lebanon,LBN,2000,0
+Lebanon,LBN,2010,0
+Lebanon,LBN,2015,0
+Lebanon,LBN,2020,0
+Libya,LBY,1990,0
+Libya,LBY,2000,0
+Libya,LBY,2010,0
+Libya,LBY,2015,0
+Libya,LBY,2020,0
+Liechtenstein,LIE,1990,100
+Liechtenstein,LIE,2000,210
+Liechtenstein,LIE,2010,210
+Liechtenstein,LIE,2015,210
+Liechtenstein,LIE,2020,400
+Lithuania,LTU,2000,15140
+Lithuania,LTU,2010,3540
+Lithuania,LTU,2015,3650
+Lithuania,LTU,2020,3270
+Low-income countries,OWID_LIC,1990,137750
+Low-income countries,OWID_LIC,2000,205810
+Low-income countries,OWID_LIC,2010,228250
+Low-income countries,OWID_LIC,2015,207840
+Low-income countries,OWID_LIC,2020,183320
+Lower-middle-income countries,OWID_LMC,1990,886600
+Lower-middle-income countries,OWID_LMC,2000,960300
+Lower-middle-income countries,OWID_LMC,2010,1099670
+Lower-middle-income countries,OWID_LMC,2015,1156850
+Lower-middle-income countries,OWID_LMC,2020,822220
+Madagascar,MDG,2000,9560
+Madagascar,MDG,2010,4010.0002
+Madagascar,MDG,2015,25100
+Madagascar,MDG,2020,10810
+Malawi,MWI,1990,0
+Malawi,MWI,2000,0
+Malawi,MWI,2010,0
+Malawi,MWI,2015,0
+Malawi,MWI,2020,0
+Mali,MLI,1990,3630
+Mali,MLI,2000,44500
+Mali,MLI,2010,71690
+Mali,MLI,2015,31290
+Mali,MLI,2020,14540
+Malta,MLT,2015,110
+Malta,MLT,2020,10
+Mauritius,MUS,1990,100
+Mauritius,MUS,2000,10
+Mauritius,MUS,2010,80
+Mauritius,MUS,2015,210
+Mauritius,MUS,2020,0
+Mexico,MEX,1990,454930
+Mexico,MEX,2000,271130
+Mexico,MEX,2010,39390
+Mexico,MEX,2015,38050
+Mexico,MEX,2020,38050
+Moldova,MDA,1990,2780
+Moldova,MDA,2000,4810
+Moldova,MDA,2010,3310
+Monaco,MCO,1990,0
+Monaco,MCO,2000,0
+Monaco,MCO,2010,0
+Monaco,MCO,2015,0
+Monaco,MCO,2020,0
+Morocco,MAR,1990,6100
+Morocco,MAR,2000,650
+Morocco,MAR,2010,670
+Morocco,MAR,2015,5080
+Morocco,MAR,2020,2470
+Namibia,NAM,1990,0
+Namibia,NAM,2000,0
+Namibia,NAM,2010,0
+Namibia,NAM,2015,0
+Namibia,NAM,2020,0
+Nauru,NRU,1990,0
+Nauru,NRU,2000,0
+Nauru,NRU,2010,0
+Nauru,NRU,2015,0
+Nauru,NRU,2020,0
+Netherlands,NLD,1990,2560
+Netherlands,NLD,2000,4000
+Netherlands,NLD,2010,2790
+Netherlands,NLD,2015,3120
+Netherlands,NLD,2020,7290
+New Zealand,NZL,1990,63300
+New Zealand,NZL,2000,17800
+New Zealand,NZL,2010,8310
+New Zealand,NZL,2015,25000
+New Zealand,NZL,2020,77650
+Nicaragua,NIC,1990,0
+Nicaragua,NIC,2000,2610
+Nicaragua,NIC,2010,7670
+Nicaragua,NIC,2015,6740
+Nicaragua,NIC,2020,6740
+Niger,NER,1990,2500
+Niger,NER,2000,7500
+Niger,NER,2010,7500
+Niger,NER,2015,7500
+Niger,NER,2020,15000
+North America,OWID_NAM,1990,693260
+North America,OWID_NAM,2000,1485340
+North America,OWID_NAM,2010,1118690
+North America,OWID_NAM,2015,1106050
+North America,OWID_NAM,2020,1023490
+Norway,NOR,1990,2850
+Norway,NOR,2000,1650
+Norway,NOR,2010,3590
+Norway,NOR,2015,4640
+Norway,NOR,2020,4620
+Oceania,OWID_OCE,1990,541840
+Oceania,OWID_OCE,2000,511080
+Oceania,OWID_OCE,2010,717970
+Oceania,OWID_OCE,2015,629420
+Oceania,OWID_OCE,2020,77650
+Oman,OMN,1990,0
+Oman,OMN,2000,0
+Oman,OMN,2010,0
+Oman,OMN,2015,0
+Oman,OMN,2020,0
+Pakistan,PAK,1990,250
+Pakistan,PAK,2000,240
+Pakistan,PAK,2010,340
+Pakistan,PAK,2015,21500
+Panama,PAN,1990,2420
+Panama,PAN,2000,2310
+Panama,PAN,2010,1100
+Panama,PAN,2015,860
+Panama,PAN,2020,2420
+Paraguay,PRY,1990,0
+Paraguay,PRY,2000,0
+Paraguay,PRY,2010,0
+Paraguay,PRY,2015,10420
+Paraguay,PRY,2020,53910
+Poland,POL,1990,18210
+Poland,POL,2000,27580
+Poland,POL,2010,19260
+Poland,POL,2015,9970
+Poland,POL,2020,7790
+Portugal,PRT,1990,37070
+Portugal,PRT,2000,32740.002
+Portugal,PRT,2010,51630
+Portugal,PRT,2015,40910
+Portugal,PRT,2020,42050
+Qatar,QAT,1990,0
+Qatar,QAT,2000,0
+Qatar,QAT,2010,0
+Qatar,QAT,2015,0
+Qatar,QAT,2020,0
+Romania,ROU,1990,1230
+Romania,ROU,2000,15080
+Romania,ROU,2010,77300
+Romania,ROU,2015,5640
+Romania,ROU,2020,5640
+Russia,RUS,1990,80410
+Russia,RUS,2000,905660
+Russia,RUS,2010,340850
+Russia,RUS,2015,1045209.94
+Russia,RUS,2020,839550
+Saint Pierre and Miquelon,SPM,1990,0
+Saint Pierre and Miquelon,SPM,2000,0
+Saint Pierre and Miquelon,SPM,2010,0
+Saint Pierre and Miquelon,SPM,2015,0
+Saint Pierre and Miquelon,SPM,2020,10
+Saint Vincent and the Grenadines,VCT,1990,80
+Saint Vincent and the Grenadines,VCT,2000,20
+Saint Vincent and the Grenadines,VCT,2010,30
+Saint Vincent and the Grenadines,VCT,2015,20
+Saint Vincent and the Grenadines,VCT,2020,10
+San Marino,SMR,1990,0
+San Marino,SMR,2000,0
+San Marino,SMR,2010,0
+San Marino,SMR,2015,0
+San Marino,SMR,2020,0
+Saudi Arabia,SAU,1990,0
+Saudi Arabia,SAU,2000,0
+Saudi Arabia,SAU,2010,0
+Saudi Arabia,SAU,2015,0
+Saudi Arabia,SAU,2020,1500
+Senegal,SEN,1990,5920
+Senegal,SEN,2000,5920
+Senegal,SEN,2010,5920
+Senegal,SEN,2015,5920
+Senegal,SEN,2020,5920
+Serbia,SRB,2000,42010
+Serbia,SRB,2010,39680
+Serbia,SRB,2015,39680
+Serbia,SRB,2020,39680
+Singapore,SGP,1990,500
+Singapore,SGP,2000,210
+Singapore,SGP,2010,50
+Singapore,SGP,2015,60
+Singapore,SGP,2020,0
+Slovenia,SVN,1990,7330
+Slovenia,SVN,2000,4630
+Slovenia,SVN,2010,2730
+Slovenia,SVN,2015,1450
+Slovenia,SVN,2020,2360
+Somalia,SOM,1990,0
+Somalia,SOM,2000,0
+Somalia,SOM,2010,0
+Somalia,SOM,2015,0
+Somalia,SOM,2020,0
+South America,OWID_SAM,1990,892180
+South America,OWID_SAM,2000,1664020
+South America,OWID_SAM,2010,175920
+South America,OWID_SAM,2015,77780
+South America,OWID_SAM,2020,105180
+Spain,ESP,1990,318930
+Spain,ESP,2000,152930
+Spain,ESP,2010,3810
+Spain,ESP,2015,85080
+Spain,ESP,2020,34400
+Sudan,SDN,1990,98400
+Sudan,SDN,2000,98400
+Sudan,SDN,2010,98400
+Sudan,SDN,2015,89860
+Sudan,SDN,2020,89860
+Svalbard and Jan Mayen,SJM,1990,0
+Svalbard and Jan Mayen,SJM,2000,0
+Svalbard and Jan Mayen,SJM,2010,0
+Svalbard and Jan Mayen,SJM,2015,0
+Svalbard and Jan Mayen,SJM,2020,0
+Sweden,SWE,1990,21490
+Sweden,SWE,2000,11820
+Sweden,SWE,2010,26900
+Sweden,SWE,2015,76000
+Sweden,SWE,2020,0
+Switzerland,CHE,1990,5970
+Switzerland,CHE,2000,6510
+Switzerland,CHE,2010,4740
+Switzerland,CHE,2015,2880
+Switzerland,CHE,2020,2880
+Syria,SYR,2000,5120
+Syria,SYR,2010,3060
+Syria,SYR,2015,80
+Syria,SYR,2020,30
+Tanzania,TZA,1990,0
+Tanzania,TZA,2000,0
+Tanzania,TZA,2010,0
+Tanzania,TZA,2015,0
+Tanzania,TZA,2020,0
+Togo,TGO,1990,1000
+Togo,TGO,2000,1500
+Togo,TGO,2010,2000
+Togo,TGO,2015,2000
+Togo,TGO,2020,7000
+Tokelau,TKL,1990,0
+Tokelau,TKL,2000,0
+Tokelau,TKL,2010,0
+Tokelau,TKL,2015,0
+Tokelau,TKL,2020,0
+Tunisia,TUN,1990,6710
+Tunisia,TUN,2000,6300
+Tunisia,TUN,2010,2950
+Tunisia,TUN,2015,1810
+Tunisia,TUN,2020,1580
+Turkey,TUR,1990,36490
+Turkey,TUR,2000,93470
+Turkey,TUR,2010,112040
+Turkey,TUR,2015,119350
+Turkey,TUR,2020,117500
+Uganda,UGA,1990,9840
+Uganda,UGA,2000,9840
+Uganda,UGA,2010,9840
+Uganda,UGA,2015,9840
+Uganda,UGA,2020,9840
+Ukraine,UKR,1990,24100
+Ukraine,UKR,2000,4830
+United Kingdom,GBR,1990,18300
+United Kingdom,GBR,2000,11000
+United Kingdom,GBR,2010,11200
+United Kingdom,GBR,2015,16299.999
+United Kingdom,GBR,2020,13400
+United States,USA,1990,108600
+United States,USA,2000,518400.03
+United States,USA,2010,275000
+United States,USA,2015,691000
+United States,USA,2020,815360
+Upper-middle-income countries,OWID_UMC,1990,3769680
+Upper-middle-income countries,OWID_UMC,2000,4902080
+Upper-middle-income countries,OWID_UMC,2010,2957390
+Upper-middle-income countries,OWID_UMC,2015,2651570
+Upper-middle-income countries,OWID_UMC,2020,2290400
+Uruguay,URY,1990,45690
+Uruguay,URY,2000,35960
+Uruguay,URY,2010,27690
+Uruguay,URY,2015,19530
+Uruguay,URY,2020,18370
+Uzbekistan,UZB,1990,42000
+Uzbekistan,UZB,2000,43000
+Uzbekistan,UZB,2010,42000
+Uzbekistan,UZB,2015,32000
+Uzbekistan,UZB,2020,45000
+Vanuatu,VUT,2010,470
+Vanuatu,VUT,2015,240
+Vatican,VAT,1990,0
+Vatican,VAT,2000,0
+Vatican,VAT,2010,0
+Vatican,VAT,2015,0
+Vatican,VAT,2020,0
+Venezuela,VEN,1990,35800
+Venezuela,VEN,2000,20200
+Venezuela,VEN,2010,16820
+Venezuela,VEN,2015,8480
+Venezuela,VEN,2020,10810
+World,OWID_WRL,1990,6240000
+World,OWID_WRL,2000,9145150
+World,OWID_WRL,2010,6639730
+World,OWID_WRL,2015,7020040
+World,OWID_WRL,2020,5349860
+Yemen,YEM,1990,0
+Yemen,YEM,2000,0
+Yemen,YEM,2010,0
+Yemen,YEM,2015,0
+Yemen,YEM,2020,0
+Zimbabwe,ZWE,1990,0
+Zimbabwe,ZWE,2000,0
+Zimbabwe,ZWE,2010,0
+Zimbabwe,ZWE,2015,0
+Zimbabwe,ZWE,2020,0

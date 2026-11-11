@@ -1,0 +1,70 @@
+{
+  "project": "Global Deforestation Analysis Dashboard (1990\u20132025)",
+  "authoritative_sources": [
+    {
+      "name": "FAO Global Forest Resources Assessment (FRA 2020 / 2025)",
+      "organization": "Food and Agriculture Organization of the United Nations (FAO)",
+      "url": "https://www.fao.org/forest-resources-assessment/",
+      "indicators": [
+        "Total Forest Area (ha)",
+        "Net Annual Forest Area Change (ha/yr)",
+        "Gross Deforestation",
+        "Gross Forest Expansion",
+        "Share of Land Covered by Forest (%)"
+      ],
+      "coverage": "235+ countries and territories, 1990\u20132025",
+      "methodology": "National reporting, remote sensing surveys, peer-reviewed expert validation across 5-year intervals with annual trend harmonizations.",
+      "type": "Directly Measured & Officially Reported Ground/Satellite Observation"
+    },
+    {
+      "name": "Global Forest Watch / Curtis et al. (Science 2018)",
+      "organization": "World Resources Institute (WRI) & University of Maryland",
+      "url": "https://www.globalforestwatch.org/",
+      "publication": "Curtis et al., Science 361, 1108\u20131111 (2018)",
+      "indicators": [
+        "Tree Cover Loss by Dominant Driver (Permanent agriculture, Logging, Shifting cultivation, Wildfire, Settlements/infrastructure, Mining)"
+      ],
+      "coverage": "Global, 2001\u20132024",
+      "methodology": "Machine-learning classification of Landsat satellite time series at 30-meter resolution identifying direct proximate physical drivers.",
+      "type": "Measured Remote Sensing Direct Drivers"
+    },
+    {
+      "name": "Agricultural Commodity Drivers of Deforestation (Pendrill et al. 2022)",
+      "organization": "Chalmers University of Technology, Stockholm Environment Institute, FAO",
+      "publication": "Pendrill et al., Environmental Research Letters (2022)",
+      "indicators": [
+        "Deforestation attributable to Beef, Soy, Palm Oil, Wood Fiber, Cocoa, Coffee, Cereals, Roots & Tubers"
+      ],
+      "coverage": "Global & Tropical countries, 2001\u20132023",
+      "methodology": "Coupling spatial land-use change mapping with FAOSTAT agricultural production data and physical supply-chain trade models.",
+      "type": "Inferred Economic Attribution from Measured Spatial Clearing"
+    },
+    {
+      "name": "Global Carbon Budget (Friedlingstein et al. 2023 / 2024)",
+      "organization": "Global Carbon Project (GCP) & UN FAO",
+      "url": "https://globalcarbonbudget.org/",
+      "indicators": [
+        "Annual CO2 Emissions from Land-Use Change (tonnes CO2/yr)"
+      ],
+      "coverage": "Global and national, 1850\u20132024",
+      "methodology": "Ensemble of bookkeeping models (BLUE, OSCAR, H&N) driven by FAO forest area change data and deforestation dynamics.",
+      "type": "Biogeochemical Bookkeeping Modeling based on Measured Land-Use Changes"
+    },
+    {
+      "name": "IUCN Red List Index",
+      "organization": "International Union for Conservation of Nature (IUCN) & BirdLife International",
+      "url": "https://www.iucnredlist.org/",
+      "indicators": [
+        "Red List Index (0.0 = all species extinct, 1.0 = all species least concern)"
+      ],
+      "coverage": "Global and national, 1993\u20132025",
+      "methodology": "Aggregate measure of extinction risk changes over time for birds, mammals, amphibians, corals, and cycads.",
+      "type": "Expert-Assessed Conservation Metric"
+    }
+  ],
+  "distinction_notice": {
+    "measured_causes": "Curtis et al. drivers (permanent agriculture, shifting cultivation, logging, wildfire, settlements/infrastructure, mining) represent directly observed physical land-cover disturbances classified from 30m satellite imagery.",
+    "inferred_causes": "Pendrill et al. commodity drivers (beef cattle ranching, soy, palm oil, forestry, cocoa/coffee) are inferred through econometric allocation models linking observed spatial clearance to national crop/livestock production statistics and international trade flows.",
+    "data_availability_notes": "Official FAO national forest inventory reports are compiled periodically (1990, 2000, 2010, 2015, 2020) with annual harmonized updates through 2025. Direct driver data spans 2001\u20132024; commodity attribution spans 2001\u20132023. For missing observations, 'Data Not Available' is shown."
+  }
+}
