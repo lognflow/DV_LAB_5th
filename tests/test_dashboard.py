@@ -198,7 +198,8 @@ def test_fastapi_frontend_and_endpoints(api_client):
     assert r_ov.status_code == 200
     assert "bdata" not in r_ov.text
     ov_data = r_ov.json()
-    assert len(ov_data["kpis"]) == 5
+    assert len(ov_data["kpis"]) == 4
+    assert all(k["label"] != "All Causes" for k in ov_data["kpis"])
     assert "km²" in ov_data["kpis"][0]["value"]
     assert "heatmap" in ov_data["charts"]
 
@@ -221,13 +222,24 @@ def test_fastapi_frontend_and_endpoints(api_client):
     ind_idx = asia_hm["data"][0]["locations"].index("IND")
     assert asia_hm["data"][0]["z"][ind_idx] > 8_000_000
 
-    # Country Analytics
+    # Country Analytics (Brazil + India secondary view switching & accurate cattle label)
     r_ctry = api_client.post("/api/country", json={"primary_country": "Brazil", "cause": "Wildfire"})
     assert r_ctry.status_code == 200
     ctry_data = r_ctry.json()
     assert ctry_data["scorecard"]["direction"] == "DECREASED"
     assert "zoom_map" in ctry_data["charts"]
     assert "compare_radar" in ctry_data["charts"]
+
+    r_ind_comm = api_client.post("/api/country", json={"primary_country": "India", "country_secondary_view": "commodity"})
+    assert r_ind_comm.status_code == 200
+    ind_comm = r_ind_comm.json()
+    assert ind_comm["scorecard"]["direction"] == "INCREASED"
+    assert ind_comm["scorecard"]["dominant_commodity"] == "Cattle (Beef, Leather & Pasture)"
+    assert "Cattle (Beef, Leather & Pasture)" in [t["name"] for t in ind_comm["charts"]["secondary"]["data"]]
+
+    r_ind_gross = api_client.post("/api/country", json={"primary_country": "India", "country_secondary_view": "gross"})
+    assert r_ind_gross.status_code == 200
+    assert "Gross Deforestation vs. Forest Expansion: India" in r_ind_gross.json()["charts"]["secondary"]["layout"]["title"]["text"]
 
     # Cause Analytics switching (All Causes vs Specific Cause)
     r_all = api_client.post("/api/causes", json={"cause": "All Causes"})
@@ -245,11 +257,74 @@ def test_fastapi_frontend_and_endpoints(api_client):
 
     # Hotspots, Regional, Data Explorer & CSV Download
     assert api_client.post("/api/hotspots", json={"top_n": 10}).status_code == 200
-    assert api_client.post("/api/regional", json={"snapshot_year": 2020}).status_code == 200
+    r_reg = api_client.post("/api/regional", json={"snapshot_year": 2020})
+    assert r_reg.status_code == 200 and r_reg.json()["year_label"] == "2025"  # range mode uses end_year (ignores snapshot_year)
     r_data = api_client.get("/api/data?dataset=country_panel&q=Brazil")
     assert r_data.status_code == 200 and r_data.json()["total_rows"] > 0
     r_csv = api_client.get("/api/download/hotspots?start_year=1990&end_year=2025")
     assert r_csv.status_code == 200 and "BRA" in r_csv.text
+
+    # Snapshot Time Mode (Mutually exclusive single-year analysis)
+    r_home = api_client.get("/")
+    assert r_home.status_code == 200
+    assert "no-store" in r_home.headers.get("cache-control", "")
+    assert 'id="time-mode-btns"' in r_home.text
+    assert 'data-tmode="snapshot"' in r_home.text
+    assert 'id="group-year-range"' in r_home.text
+    assert 'id="group-snapshot-year"' in r_home.text
+
+    r_js = api_client.get("/static/js/dashboard.js")
+    assert r_js.status_code == 200
+    assert "dataset.tmode" in r_js.text and "dataset.mode" not in r_js.text
+    assert "no-store" in r_js.headers.get("cache-control", "")
+
+    r_snap_ov = api_client.post("/api/overview", json={
+        "time_mode": "snapshot", "snapshot_year": 2020, "start_year": 1990, "end_year": 2025
+    })
+    assert r_snap_ov.status_code == 200 and "bdata" not in r_snap_ov.text
+    snap_kpis = r_snap_ov.json()["kpis"]
+    assert len(snap_kpis) == 4
+    assert snap_kpis[0]["label"] == "Forest Area (2020)"
+    assert snap_kpis[1]["label"] == "Annual Net Change (2020)"
+    assert "Mha/yr" in snap_kpis[1]["value"]
+
+    # Snapshot Year 1990 should transparently mark unavailable annual rate
+    r_snap_1990 = api_client.post("/api/overview", json={"time_mode": "snapshot", "snapshot_year": 1990})
+    assert r_snap_1990.status_code == 200
+    kpis_1990 = r_snap_1990.json()["kpis"]
+    assert len(kpis_1990) == 4
+    assert kpis_1990[0]["label"] == "Forest Area (1990)"
+    assert kpis_1990[1]["value"] == "Data Not Available"
+
+    r_snap_ctry = api_client.post("/api/country", json={
+        "time_mode": "snapshot", "snapshot_year": 2020, "primary_country": "Brazil", "cause": "Wildfire"
+    })
+    assert r_snap_ctry.status_code == 200
+    assert r_snap_ctry.json()["scorecard"]["metrics"][0]["label"] == "Forest Area (2020)"
+
+    r_snap_wild = api_client.post("/api/causes", json={
+        "time_mode": "snapshot", "snapshot_year": 2023, "cause": "Wildfire"
+    })
+    assert r_snap_wild.status_code == 200
+    wild_2023 = r_snap_wild.json()
+    assert wild_2023["mode"] == "specific" and len(wild_2023["table"]) > 0
+    assert wild_2023["table"][0]["Code"] == "CAN"
+
+    r_snap_hot = api_client.post("/api/hotspots", json={"time_mode": "snapshot", "snapshot_year": 2020, "top_n": 10})
+    assert r_snap_hot.status_code == 200
+    hot_json = r_snap_hot.json()
+    assert hot_json["time_mode"] == "snapshot" and hot_json["year_label"] == "2020"
+
+    r_snap_reg = api_client.post("/api/regional", json={"time_mode": "snapshot", "snapshot_year": 2020})
+    assert r_snap_reg.status_code == 200 and r_snap_reg.json()["year_label"] == "2020"
+
+    r_snap_data = api_client.get("/api/data?dataset=country_panel&q=Brazil&time_mode=snapshot&snapshot_year=2020")
+    assert r_snap_data.status_code == 200
+    rows_snap = r_snap_data.json()["rows"]
+    assert len(rows_snap) == 1 and rows_snap[0]["Year"] == 2020
+
+    r_snap_csv = api_client.get("/api/download/hotspots?time_mode=snapshot&snapshot_year=2020")
+    assert r_snap_csv.status_code == 200 and "2020" in r_snap_csv.text and "BRA" in r_snap_csv.text
 
 
 def test_notebooks_exist_and_executed():

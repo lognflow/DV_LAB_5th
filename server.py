@@ -15,7 +15,7 @@ import pandas as pd
 import plotly
 import plotly.express as px
 import plotly.graph_objects as go
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -32,9 +32,11 @@ from src.utils import (
     CAUSE_METADATA,
     CONTINENT_COLORS,
     DRIVER_COLORS,
+    COMMODITY_DISPLAY_NAMES,
     THEME
 )
 from src.charts import (
+    _add_snapshot_vline,
     _apply_layout,
     _empty_figure,
     create_global_forest_heatmap,
@@ -63,6 +65,17 @@ from src.charts import (
 )
 
 app = FastAPI(title="Global Deforestation Analytics API", version="2.0.0")
+
+
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path == "/" or path.startswith("/static/") or path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+    return response
+
 
 # Mount frontend static assets
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
@@ -283,9 +296,6 @@ async def get_overview(state: FilterState):
         gross_label = "Annual Net Rate"
         gross_tone = "loss" if (pd.notna(kpis["annual_rate_end_ha"]) and kpis["annual_rate_end_ha"] < 0) else "gain"
 
-    c_yrs = f"{snap}" if (t_mode == "snapshot" and kpis["cause_years"]) else (f"{kpis['cause_years'][0]}–{kpis['cause_years'][1]}" if kpis["cause_years"] else "Outside 2001–2024")
-    c_share = f" ({kpis['cause_share_pct']:.1f}% of loss)" if (pd.notna(kpis["cause_share_pct"]) and state.cause != "All Causes") else ""
-
     change_label = f"Annual Net Change ({snap})" if t_mode == "snapshot" else f"Net Change ({y0}–{y1})"
     change_suffix = "/yr" if t_mode == "snapshot" else ""
     pct_txt = f"{kpis['pct_change_period']:+.2f}%{change_suffix}" if pd.notna(kpis["pct_change_period"]) else ("Annual rate starts 1991" if (t_mode == "snapshot" and snap == 1990) else "N/A")
@@ -314,12 +324,6 @@ async def get_overview(state: FilterState):
             "value": gross_val,
             "subtext": gross_sub,
             "tone": gross_tone
-        },
-        {
-            "label": state.cause,
-            "value": format_area_value(kpis["cause_loss_ha"], state.unit, signed=False),
-            "subtext": f"Loss {c_yrs}{c_share}",
-            "tone": "cause"
         }
     ]
 
@@ -470,7 +474,7 @@ async def get_country_analytics(state: FilterState):
         "direction": direction,
         "status": hot_row["Hotspot_Status"].iloc[0] if not hot_row.empty else "Not Classified",
         "dominant_driver": hot_row["Dominant_Driver"].iloc[0] if not hot_row.empty else "Data Not Available",
-        "dominant_commodity": hot_row["Dominant_Commodity"].iloc[0] if not hot_row.empty else "Data Not Available",
+        "dominant_commodity": COMMODITY_DISPLAY_NAMES.get(hot_row["Dominant_Commodity"].iloc[0], hot_row["Dominant_Commodity"].iloc[0]) if not hot_row.empty else "Data Not Available",
         "metrics": [
             {"label": f"Forest Area ({snap if t_mode == 'snapshot' else y1})", "value": format_area_value(c_kpis["area_end_ha"], state.unit), "tone": "neutral"},
             {
@@ -645,7 +649,8 @@ async def get_causes_analytics(state: FilterState):
         return {"mode": "specific", "cause_label": c_label, "charts": {"map": empty, "top": empty, "trajectory": empty, "share": empty, "heatmap": empty}, "table": []}
 
     c_filtered = c_df[c_df["Continent"].isin(continents)].copy()
-    hi_iso = DF_PANEL[DF_PANEL["Entity"] == state.focus_country]["ISO3"].iloc[0] if state.focus_country != "All Countries" else None
+    hi_df = DF_PANEL[DF_PANEL["Entity"] == state.focus_country] if state.focus_country != "All Countries" else pd.DataFrame()
+    hi_iso = hi_df["ISO3"].iloc[0] if not hi_df.empty else None
 
     fig_map = create_cause_world_choropleth(c_filtered, c_col, c_label, year_range=(cy0, cy1), scope=state.map_scope, highlight_iso3=hi_iso, cause_color=c_color)
     fig_top = create_cause_top_countries_bar(c_filtered, c_col, c_label, year_range=(cy0, cy1), top_n=12, cause_color=c_color)

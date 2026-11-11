@@ -65,6 +65,10 @@ COMMODITY_COLORS = {
     "Other crops": "#64748b"
 }
 
+COMMODITY_DISPLAY_NAMES = {
+    "Beef": "Cattle (Beef, Leather & Pasture)"
+}
+
 # Mapping UI Cause options to exact dataset source, column name, color, and scientific classification
 CAUSE_METADATA = {
     "All Causes": {
@@ -133,11 +137,11 @@ CAUSE_METADATA = {
     "Commodity: Beef (Cattle Ranching)": {
         "dataset": "commodities",
         "column": "Beef",
-        "label": "Beef / Cattle Ranching (Inferred)",
+        "label": "Cattle (Beef, Leather & Pasture — Inferred)",
         "category": "Inferred Commodity Attribution",
         "years": (2001, 2023),
         "color": "#b91c1c",
-        "methodology": "Econometric attribution (Pendrill et al. 2022) linking spatial clearing to pasture expansion for beef production."
+        "methodology": "Econometric attribution (OWID / Singh et al. 2026 & Pendrill et al.) allocating pasture/grazing, leather, and cattle land-use footprint overlap."
     },
     "Commodity: Palm Oil": {
         "dataset": "commodities",

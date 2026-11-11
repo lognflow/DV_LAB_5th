@@ -14,6 +14,7 @@ from src.utils import (
     CONTINENT_COLORS,
     DRIVER_COLORS,
     COMMODITY_COLORS,
+    COMMODITY_DISPLAY_NAMES,
     convert_area
 )
 
@@ -770,10 +771,14 @@ def create_commodity_breakdown_chart(df_commodities, entity="World", year=2023, 
 
     comm_cols = [c for c in COMMODITY_COLORS.keys() if c in df_sub.columns]
     sums = df_sub[comm_cols].sum().reset_index()
-    sums.columns = ["Commodity", "Area_ha"]
+    sums.columns = ["Commodity_Key", "Area_ha"]
     sums = sums[sums["Area_ha"] > 0].sort_values("Area_ha", ascending=True)
     if sums.empty:
         return _empty_figure(f"No commodity-driven deforestation recorded for {entity}")
+
+    # Align display label with live OWID variable metadata ("Cattle (beef and leather)", Singh et al. 2026)
+    sums["Commodity"] = sums["Commodity_Key"].map(lambda k: COMMODITY_DISPLAY_NAMES.get(k, k))
+    color_map = {COMMODITY_DISPLAY_NAMES.get(k, k): v for k, v in COMMODITY_COLORS.items()}
 
     sums["Area_k_ha"] = sums["Area_ha"] / 1000.0
     fig = px.bar(
@@ -782,16 +787,19 @@ def create_commodity_breakdown_chart(df_commodities, entity="World", year=2023, 
         y="Commodity",
         orientation="h",
         color="Commodity",
-        color_discrete_map=COMMODITY_COLORS,
-        title=f"Inferred Deforestation by Commodity: {entity} ({title_suffix})",
-        labels={"Area_k_ha": "Area Lost (Thousand Hectares)", "Commodity": "Commodity"}
+        color_discrete_map=color_map,
+        title=f"Inferred Commodity Footprint: {entity} ({title_suffix})<br><sup>Modeled pasture, leather & crop attribution (OWID / Singh et al. 2026) — differs from measured GFW drivers</sup>",
+        labels={"Area_k_ha": "Attributed Clearing (Thousand Hectares)", "Commodity": ""}
     )
-    fig.update_traces(hovertemplate="<b>%{y}</b>: %{x:,.1f} thousand ha<extra></extra>")
+    fig.update_traces(
+        hovertemplate="<b>%{y}</b>: %{x:,.1f} thousand ha<br><i>Modeled economic attribution (OWID / Singh et al. 2026)</i><extra></extra>"
+    )
     return _apply_layout(
         fig,
         showlegend=False,
-        title=dict(font=dict(size=14, color=THEME["primary"])),
-        xaxis=dict(showgrid=True, gridcolor="#f1f5f9")
+        title=dict(font=dict(size=13, color=THEME["primary"])),
+        xaxis=dict(showgrid=True, gridcolor="#f1f5f9"),
+        margin=dict(l=20, r=20, t=72, b=35)
     )
 
 

@@ -8,6 +8,7 @@ const state = {
     allCountries: [],
     causes: [],
     focus_country: "All Countries",
+    time_mode: "range",
     start_year: 1990,
     end_year: 2025,
     snapshot_year: 2020,
@@ -71,7 +72,11 @@ function renderPlotly(containerId, figDict, onClickHandler = null) {
     };
 
     const isGeo = traces.some((t) => t && (t.type === "choropleth" || t.type === "scattergeo"));
-    const drawPromise = isGeo
+    const multiView = ["chart-country-secondary", "chart-overview-secondary", "chart-country-cause", "chart-overview-treemap"].includes(containerId);
+    if (multiView && typeof Plotly.purge === "function") {
+        try { Plotly.purge(el); } catch (_) {}
+    }
+    const drawPromise = (isGeo || multiView)
         ? Plotly.newPlot(el, traces, layout, config)
         : Plotly.react(el, traces, layout, config);
 
@@ -92,7 +97,9 @@ function updateStatusRibbon() {
         ? state.focus_country
         : (state.continents.length === 6 ? "Global (6 Continents)" : state.continents.join(", "));
     scopeEl.textContent = `Scope: ${scopeTxt}`;
-    yearsEl.textContent = `${state.start_year}–${state.end_year} (Snap: ${state.snapshot_year})`;
+    yearsEl.textContent = state.time_mode === "snapshot"
+        ? `Snapshot: ${state.snapshot_year}`
+        : `Range: ${state.start_year}–${state.end_year}`;
     causeEl.textContent = `Cause: ${state.cause}`;
 }
 
@@ -105,6 +112,7 @@ function buildPayload() {
     return {
         continents: state.continents,
         focus_country: state.focus_country,
+        time_mode: state.time_mode,
         start_year: state.start_year,
         end_year: state.end_year,
         snapshot_year: state.snapshot_year,
@@ -308,7 +316,22 @@ async function loadHotspotsTab() {
     renderPlotly("chart-hotspots-scatter", data.charts.scatter);
     renderPlotly("chart-hotspots-recovery", data.charts.recovery);
 
-    renderDataTable("hotspots-table-wrap", [
+    const isSnap = data.time_mode === "snapshot";
+    const yrLabel = data.year_label || String(state.snapshot_year);
+    const hotspotCols = isSnap ? [
+        { key: "ISO3", label: "ISO3" },
+        { key: "Entity", label: "Country" },
+        { key: "Continent", label: "Continent" },
+        { key: "Area_End_Mha", label: `Area ${yrLabel} (Mha)`, fmt: (v) => `${Number(v).toFixed(2)}` },
+        {
+            key: "Net_Change_Mha",
+            label: `Annual Change ${yrLabel} (Mha/yr)`,
+            fmt: (v) => `${Number(v) >= 0 ? "+" : ""}${Number(v).toFixed(3)} Mha/yr`,
+            classFn: (v) => (v < 0 ? "cell-loss" : "cell-gain")
+        },
+        { key: "Pct_Change", label: "Annual % Change", fmt: (v) => `${Number(v) >= 0 ? "+" : ""}${Number(v).toFixed(2)}%` },
+        { key: "Dominant_Driver", label: "Primary Cause" }
+    ] : [
         { key: "ISO3", label: "ISO3" },
         { key: "Entity", label: "Country" },
         { key: "Continent", label: "Continent" },
@@ -322,7 +345,8 @@ async function loadHotspotsTab() {
         },
         { key: "Pct_Change", label: "% Change", fmt: (v) => `${Number(v) >= 0 ? "+" : ""}${Number(v).toFixed(1)}%` },
         { key: "Dominant_Driver", label: "Primary Cause" }
-    ], data.table);
+    ];
+    renderDataTable("hotspots-table-wrap", hotspotCols, data.table);
     state.staleTabs.delete("hotspots");
 }
 
@@ -331,6 +355,11 @@ async function loadRegionalTab() {
     renderPlotly("chart-regional-lines", data.charts.regional_lines);
     renderPlotly("chart-regional-co2", data.charts.co2);
     renderPlotly("chart-regional-rli", data.charts.rli);
+
+    const regTitle = document.getElementById("regional-table-title");
+    if (regTitle) {
+        regTitle.textContent = `Regional Breakdown (${data.year_label || state.snapshot_year} Snapshot)`;
+    }
 
     renderDataTable("regional-table-wrap", [
         { key: "Continent", label: "Continent" },
@@ -359,8 +388,9 @@ async function loadDataExplorerTab() {
     const contStr = encodeURIComponent(state.continents.join(","));
     const qStr = encodeURIComponent(q);
 
-    const url = `/api/data?dataset=${dataset}&q=${qStr}&start_year=${state.start_year}&end_year=${state.end_year}&continents=${contStr}`;
-    const dlUrl = `/api/download/${dataset}?q=${qStr}&start_year=${state.start_year}&end_year=${state.end_year}&continents=${contStr}`;
+    const timeParams = `time_mode=${state.time_mode}&start_year=${state.start_year}&end_year=${state.end_year}&snapshot_year=${state.snapshot_year}`;
+    const url = `/api/data?dataset=${dataset}&q=${qStr}&${timeParams}&continents=${contStr}`;
+    const dlUrl = `/api/download/${dataset}?q=${qStr}&${timeParams}&continents=${contStr}`;
     document.getElementById("btn-download-csv").href = dlUrl;
 
     const data = await fetchJson(url);
@@ -500,8 +530,9 @@ async function initDashboard() {
     const causeSel = document.getElementById("sel-cause");
     const causeInline = document.getElementById("sel-cause-inline");
     meta.causes.forEach((c) => {
-        causeSel.add(new Option(c.id, c.id));
-        causeInline.add(new Option(c.id, c.id));
+        const optText = c.id === "All Causes" ? "All Causes" : (c.label || c.id);
+        causeSel.add(new Option(optText, c.id));
+        causeInline.add(new Option(optText, c.id));
     });
     causeSel.value = state.cause;
     causeInline.value = state.cause;
@@ -549,6 +580,59 @@ async function initDashboard() {
         loadCountryTab();
     });
 
+    const groupRange = document.getElementById("group-year-range");
+    const groupSnap = document.getElementById("group-snapshot-year");
+    const mapModeSel = document.getElementById("sel-map-mode");
+    const periodOpt = mapModeSel.querySelector('option[value="period_change"]');
+    const annualOpt = mapModeSel.querySelector('option[value="annual_rate"]');
+
+    function applyTimeModeUI(mode) {
+        state.time_mode = mode === "snapshot" ? "snapshot" : "range";
+        const isSnap = (state.time_mode === "snapshot");
+        document.querySelectorAll("#time-mode-btns .seg-btn").forEach((b) => {
+            b.classList.toggle("active", b.dataset.tmode === state.time_mode);
+        });
+        groupRange.classList.toggle("hidden", isSnap);
+        groupSnap.classList.toggle("hidden", !isSnap);
+
+        if (isSnap) {
+            snapRange.min = String(meta.year_min);
+            snapRange.max = String(meta.year_max);
+            snapRange.value = String(state.snapshot_year);
+            document.getElementById("lbl-snapshot-year").textContent = String(state.snapshot_year);
+            if (periodOpt) {
+                periodOpt.textContent = "Net Change (Period — Range Mode Only)";
+                periodOpt.disabled = true;
+            }
+            if (annualOpt) annualOpt.textContent = `Annual Rate (${state.snapshot_year})`;
+            if (state.map_mode === "period_change") {
+                state.map_mode = "annual_rate";
+                mapModeSel.value = "annual_rate";
+            }
+        } else {
+            document.getElementById("lbl-year-range").textContent = `${state.start_year} – ${state.end_year}`;
+            if (periodOpt) {
+                periodOpt.textContent = "Net Change (Period)";
+                periodOpt.disabled = false;
+            }
+            if (annualOpt) annualOpt.textContent = "Annual Rate (Snapshot Year)";
+            if (state.map_mode === "annual_rate" && state.cause === "All Causes") {
+                state.map_mode = "period_change";
+                mapModeSel.value = "period_change";
+            }
+        }
+    }
+
+    document.querySelectorAll("#time-mode-btns .seg-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const nextMode = btn.dataset.tmode;
+            if (!nextMode || state.time_mode === nextMode) return;
+            applyTimeModeUI(nextMode);
+            markAllStale();
+            loadActiveTab();
+        });
+    });
+
     function syncYearControls() {
         let s = Number(startSel.value);
         let e = Number(endSel.value);
@@ -559,26 +643,40 @@ async function initDashboard() {
         }
         state.start_year = s;
         state.end_year = e;
-        snapRange.min = String(s);
-        snapRange.max = String(e);
-        if (state.snapshot_year < s) state.snapshot_year = s;
-        if (state.snapshot_year > e) state.snapshot_year = e;
-        snapRange.value = String(state.snapshot_year);
         document.getElementById("lbl-year-range").textContent = `${s} – ${e}`;
-        document.getElementById("lbl-snapshot-year").textContent = String(state.snapshot_year);
         markAllStale();
         loadActiveTab();
     }
     startSel.addEventListener("change", syncYearControls);
     endSel.addEventListener("change", syncYearControls);
 
+    let snapDebounce = null;
+    let lastLoadedSnap = null;
     snapRange.addEventListener("input", (e) => {
         state.snapshot_year = Number(e.target.value);
         document.getElementById("lbl-snapshot-year").textContent = String(state.snapshot_year);
+        if (annualOpt && state.time_mode === "snapshot") {
+            annualOpt.textContent = `Annual Rate (${state.snapshot_year})`;
+        }
+        updateStatusRibbon();
+        clearTimeout(snapDebounce);
+        snapDebounce = setTimeout(() => {
+            if (state.time_mode === "snapshot" && lastLoadedSnap !== state.snapshot_year) {
+                lastLoadedSnap = state.snapshot_year;
+                markAllStale();
+                loadActiveTab();
+            }
+        }, 180);
     });
-    snapRange.addEventListener("change", () => {
-        markAllStale();
-        loadActiveTab();
+    snapRange.addEventListener("change", (e) => {
+        clearTimeout(snapDebounce);
+        state.snapshot_year = Number(e.target.value);
+        document.getElementById("lbl-snapshot-year").textContent = String(state.snapshot_year);
+        if (lastLoadedSnap !== state.snapshot_year) {
+            lastLoadedSnap = state.snapshot_year;
+            markAllStale();
+            loadActiveTab();
+        }
     });
 
     function onCauseChange(val) {
@@ -586,11 +684,12 @@ async function initDashboard() {
         causeSel.value = val;
         causeInline.value = val;
         if (val !== "All Causes") {
-            document.getElementById("sel-map-mode").value = "cause_loss";
+            mapModeSel.value = "cause_loss";
             state.map_mode = "cause_loss";
         } else if (state.map_mode === "cause_loss") {
-            document.getElementById("sel-map-mode").value = "period_change";
-            state.map_mode = "period_change";
+            const fallbackMode = state.time_mode === "snapshot" ? "annual_rate" : "period_change";
+            mapModeSel.value = fallbackMode;
+            state.map_mode = fallbackMode;
         }
         markAllStale();
         loadActiveTab();
@@ -674,6 +773,7 @@ async function initDashboard() {
     document.getElementById("btn-reset-filters").addEventListener("click", () => {
         state.continents = [...state.allContinents];
         state.focus_country = "All Countries";
+        state.time_mode = "range";
         state.start_year = 1990;
         state.end_year = 2025;
         state.snapshot_year = 2020;
@@ -686,16 +786,17 @@ async function initDashboard() {
         populateCountryDropdowns();
         startSel.value = "1990";
         endSel.value = "2025";
-        snapRange.min = "1990";
-        snapRange.max = "2025";
+        snapRange.min = String(meta.year_min);
+        snapRange.max = String(meta.year_max);
         snapRange.value = "2020";
         causeSel.value = "All Causes";
         causeInline.value = "All Causes";
-        document.getElementById("sel-map-mode").value = "period_change";
+        mapModeSel.value = "period_change";
         document.getElementById("sel-map-scope").value = "world";
         document.getElementById("lbl-year-range").textContent = "1990 – 2025";
         document.getElementById("lbl-snapshot-year").textContent = "2020";
         document.querySelectorAll(".unit-btn").forEach((b) => b.classList.toggle("active", b.dataset.unit === state.unit));
+        applyTimeModeUI("range");
         markAllStale();
         loadActiveTab();
     });
@@ -703,6 +804,7 @@ async function initDashboard() {
     window.addEventListener("resize", () => resizeAllPlots());
 
     // Initial load
+    applyTimeModeUI(state.time_mode);
     await loadActiveTab();
 }
 
