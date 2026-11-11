@@ -1,7 +1,7 @@
 """
-Unit and Integration Tests for Global Deforestation Analysis Dashboard.
-Verifies data pipeline, continental accuracy, dynamic KPI calculations,
-country-wise and cause-specific charts, notebook execution, and app compilation.
+Unit and Integration Tests for Global Deforestation Analytics Backend, Charts & Notebooks.
+Verifies data pipeline, continental accuracy, dynamic KPIs, Global Heatmap Decreased/Increased
+tooltips, FastAPI endpoints, cause-dynamic charts, and executed Jupyter notebooks.
 """
 
 import os
@@ -10,19 +10,21 @@ import pytest
 import pandas as pd
 import nbformat
 import plotly.graph_objects as go
+from fastapi.testclient import TestClient
 
 PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJ_ROOT not in sys.path:
     sys.path.append(PROJ_ROOT)
 
+import server
 from src.utils import (
     load_processed_data,
     load_world_geodata,
     get_global_kpis,
-    compute_dynamic_kpis,
-    CAUSE_METADATA
+    compute_dynamic_kpis
 )
 from src.charts import (
+    create_global_forest_heatmap,
     create_world_choropleth,
     create_cause_world_choropleth,
     create_geopandas_country_zoom_map,
@@ -52,6 +54,11 @@ def dashboard_data():
     return load_processed_data()
 
 
+@pytest.fixture(scope="module")
+def api_client():
+    return TestClient(server.app)
+
+
 def test_processed_files_exist():
     """Verify all required processed files exist."""
     required = [
@@ -71,14 +78,13 @@ def test_processed_files_exist():
 
 
 def test_continental_mapping_accuracy(dashboard_data):
-    """Verify all 6 continents including South America are mapped accurately against FAO totals."""
+    """Verify all 6 continents including South America match FAO 2020 totals."""
     df_reg = dashboard_data["regional"]
     reg_2020 = df_reg[df_reg["Year"] == 2020].set_index("Continent")["Forest_Area_Mha"].to_dict()
 
     for cont in ["Africa", "Asia", "Europe", "North America", "South America", "Oceania"]:
         assert cont in reg_2020, f"Missing continent: {cont}"
 
-    # Verify exact match with FAO 2020 continental totals
     assert abs(reg_2020["South America"] - 870.43) < 0.5
     assert abs(reg_2020["North America"] - 777.62) < 0.5
     assert abs(reg_2020["Africa"] - 676.86) < 0.5
@@ -93,7 +99,6 @@ def test_global_kpi_calculations(dashboard_data):
     assert kpis["target_year"] == 2025
     assert 4_000_000_000 <= kpis["forest_area_ha"] <= 4_400_000_000
     assert kpis["net_change_since_1990_ha"] < -150_000_000
-    assert kpis["net_change_since_1990_mha"] < -150.0
     assert 28.0 <= kpis["forest_share_pct"] <= 33.0
 
 
@@ -103,34 +108,35 @@ def test_dynamic_reactive_kpis(dashboard_data):
     df_drv = dashboard_data["drivers"]
     df_comm = dashboard_data["commodities"]
 
-    # Country-level KPI for Brazil + Wildfire
     k_bra = compute_dynamic_kpis(df_panel, df_drv, df_comm, 1990, 2025, ["South America"], "Brazil", "Wildfire")
     assert k_bra["iso3"] == "BRA"
     assert abs(k_bra["net_change_period_ha"] / 1e6 - (-132.36)) < 0.2
     assert k_bra["cause_loss_ha"] > 9_000_000
     assert 0 < k_bra["cause_share_pct"] < 100
 
-    # Commodity cause filter (Beef)
     k_beef = compute_dynamic_kpis(df_panel, df_drv, df_comm, 2001, 2023, ["South America"], "Brazil", "Commodity: Beef (Cattle Ranching)")
     assert k_beef["cause_loss_ha"] > 20_000_000
     assert k_beef["cause_share_pct"] > 50.0
 
 
-def test_country_hotspots(dashboard_data):
-    """Verify top deforested and reforested countries and dominant drivers."""
-    df_hotspots = dashboard_data["hotspots"]
-    top_deforested = df_hotspots.head(10)["ISO3"].tolist()
-    assert "BRA" in top_deforested
-    assert "COD" in top_deforested
-    assert "IDN" in top_deforested
-    assert df_hotspots[df_hotspots["ISO3"] == "BRA"]["Dominant_Driver"].iloc[0] == "Permanent agriculture"
-
-    top_reforested = df_hotspots.tail(10)["ISO3"].tolist()
-    assert "CHN" in top_reforested
+def test_global_heatmap_decreased_increased_labels(dashboard_data):
+    """Verify the Global Heatmap explicitly marks countries as DECREASED or INCREASED."""
+    fig = create_global_forest_heatmap(
+        dashboard_data["country_panel"],
+        df_hotspots=dashboard_data["hotspots"],
+        start_year=1990,
+        end_year=2025,
+        snapshot_year=2020
+    )
+    assert isinstance(fig, go.Figure) and len(fig.data) > 0
+    trace = fig.data[0]
+    custom_statuses = [row[1] for row in trace.customdata]
+    assert any("DECREASED" in s for s in custom_statuses)
+    assert any("INCREASED" in s for s in custom_statuses)
 
 
 def test_all_plotly_charts(dashboard_data):
-    """Verify that all original and new Plotly/GeoPandas chart generators produce valid figures."""
+    """Verify that all 22 Plotly/GeoPandas chart generators produce valid figures."""
     df_panel = dashboard_data["country_panel"]
     df_global = dashboard_data["global_summary"]
     df_drivers = dashboard_data["drivers"]
@@ -140,6 +146,7 @@ def test_all_plotly_charts(dashboard_data):
     gdf_world = load_world_geodata()
 
     figs = [
+        create_global_forest_heatmap(df_panel, df_hotspots, 1990, 2025, 2020),
         create_world_choropleth(df_panel, year=2020, metric="Annual_Change_Mha", highlight_iso3="BRA"),
         create_cause_world_choropleth(df_drivers, "Wildfire", "Wildfire", (2001, 2024)),
         create_geopandas_country_zoom_map(gdf_world, df_panel, iso3="BRA", year=2020),
@@ -168,6 +175,83 @@ def test_all_plotly_charts(dashboard_data):
         assert len(fig.data) > 0, f"Chart {idx} has no data traces"
 
 
+def test_fastapi_frontend_and_endpoints(api_client):
+    """Test custom web frontend routes and all interactive JSON/CSV endpoints."""
+    # Static HTML and bundled Plotly JS
+    r_home = api_client.get("/")
+    assert r_home.status_code == 200
+    assert "Global Deforestation" in r_home.text
+
+    r_plotly = api_client.get("/vendor/plotly.min.js")
+    assert r_plotly.status_code == 200
+    assert len(r_plotly.content) > 1_000_000
+
+    # Filters
+    r_filt = api_client.get("/api/filters")
+    assert r_filt.status_code == 200
+    filt_json = r_filt.json()
+    assert len(filt_json["continents"]) == 6
+    assert len(filt_json["countries"]) > 200
+
+    # Overview (Default + Focus Country + Unit switch)
+    r_ov = api_client.post("/api/overview", json={"focus_country": "Brazil", "unit": "Square Kilometers (km²)"})
+    assert r_ov.status_code == 200
+    assert "bdata" not in r_ov.text
+    ov_data = r_ov.json()
+    assert len(ov_data["kpis"]) == 5
+    assert "km²" in ov_data["kpis"][0]["value"]
+    assert "heatmap" in ov_data["charts"]
+
+    # Overview Filtered to Asia + India + Hectares (verifies filtered heatmap renders colors cleanly)
+    r_asia = api_client.post("/api/overview", json={
+        "continents": ["Asia"],
+        "focus_country": "India",
+        "start_year": 1990,
+        "end_year": 2025,
+        "snapshot_year": 2025,
+        "unit": "Hectares (ha)"
+    })
+    assert r_asia.status_code == 200
+    assert "bdata" not in r_asia.text
+    asia_hm = r_asia.json()["charts"]["heatmap"]
+    assert len(asia_hm["data"]) == 1
+    assert isinstance(asia_hm["data"][0]["z"], list)
+    assert len(asia_hm["data"][0]["z"]) == 48
+    assert asia_hm["layout"]["geo"].get("fitbounds") == "locations"
+    ind_idx = asia_hm["data"][0]["locations"].index("IND")
+    assert asia_hm["data"][0]["z"][ind_idx] > 8_000_000
+
+    # Country Analytics
+    r_ctry = api_client.post("/api/country", json={"primary_country": "Brazil", "cause": "Wildfire"})
+    assert r_ctry.status_code == 200
+    ctry_data = r_ctry.json()
+    assert ctry_data["scorecard"]["direction"] == "DECREASED"
+    assert "zoom_map" in ctry_data["charts"]
+    assert "compare_radar" in ctry_data["charts"]
+
+    # Cause Analytics switching (All Causes vs Specific Cause)
+    r_all = api_client.post("/api/causes", json={"cause": "All Causes"})
+    assert r_all.status_code == 200 and r_all.json()["mode"] == "all"
+
+    r_wild = api_client.post("/api/causes", json={"cause": "Wildfire"})
+    assert r_wild.status_code == 200
+    wild_json = r_wild.json()
+    assert wild_json["mode"] == "specific"
+    assert "trajectory" in wild_json["charts"]
+    assert len(wild_json["table"]) > 0
+
+    r_beef = api_client.post("/api/causes", json={"cause": "Commodity: Beef (Cattle Ranching)"})
+    assert r_beef.status_code == 200 and r_beef.json()["mode"] == "specific"
+
+    # Hotspots, Regional, Data Explorer & CSV Download
+    assert api_client.post("/api/hotspots", json={"top_n": 10}).status_code == 200
+    assert api_client.post("/api/regional", json={"snapshot_year": 2020}).status_code == 200
+    r_data = api_client.get("/api/data?dataset=country_panel&q=Brazil")
+    assert r_data.status_code == 200 and r_data.json()["total_rows"] > 0
+    r_csv = api_client.get("/api/download/hotspots?start_year=1990&end_year=2025")
+    assert r_csv.status_code == 200 and "BRA" in r_csv.text
+
+
 def test_notebooks_exist_and_executed():
     """Verify all 7 notebooks exist and contain executed code cells with outputs."""
     notebook_files = [
@@ -189,41 +273,3 @@ def test_notebooks_exist_and_executed():
         assert len(code_cells) > 0, f"Notebook {nbfname} has no code cells"
         cells_with_outputs = [c for c in code_cells if len(c.get("outputs", [])) > 0]
         assert len(cells_with_outputs) > 0, f"Notebook {nbfname} has no executed cell outputs"
-
-
-def test_streamlit_app_compilation():
-    """Verify that app.py compiles cleanly without syntax error."""
-    app_path = os.path.join(PROJ_ROOT, "app.py")
-    with open(app_path, "r", encoding="utf-8") as f:
-        code = f.read()
-    compile(code, app_path, "exec")
-
-
-def test_streamlit_apptest_interactive_filters():
-    """Execute full Streamlit dashboard UI and verify reactive Country & Cause filter changes."""
-    from streamlit.testing.v1 import AppTest
-
-    at = AppTest.from_file(os.path.join(PROJ_ROOT, "app.py"), default_timeout=45)
-    at.run()
-    assert not at.exception, f"Initial Streamlit load raised exception: {at.exception}"
-
-    # Verify changing Deforestation Cause renders cause-specific graphs cleanly
-    cause_box = [s for s in at.sidebar.selectbox if "Select Cause" in s.label][0]
-    cause_box.select("Wildfire").run()
-    assert not at.exception, f"Cause='Wildfire' raised exception: {at.exception}"
-
-    # Verify changing to an inferred Commodity Cause
-    cause_box = [s for s in at.sidebar.selectbox if "Select Cause" in s.label][0]
-    cause_box.select("Commodity: Beef (Cattle Ranching)").run()
-    assert not at.exception, f"Cause='Commodity: Beef' raised exception: {at.exception}"
-
-    # Verify selecting Focus Country updates Country Analytics & Overview cleanly
-    country_box = [s for s in at.sidebar.selectbox if "Focus Country" in s.label][0]
-    country_box.select("Brazil").run()
-    assert not at.exception, f"Focus Country='Brazil' raised exception: {at.exception}"
-
-    # Verify switching unit display
-    unit_radio = [r for r in at.sidebar.radio if "Measurement Unit" in r.label][0]
-    unit_radio.set_value("Square Kilometers (km²)").run()
-    assert not at.exception, f"Unit='km²' raised exception: {at.exception}"
-

@@ -19,10 +19,36 @@ from src.utils import (
 
 
 def _apply_layout(fig, **overrides):
-    """Safely merge PLOTLY_LAYOUT with chart-specific overrides without duplicate key errors."""
+    """Safely merge PLOTLY_LAYOUT with chart-specific overrides and enforce crisp dark fonts."""
     layout = dict(PLOTLY_LAYOUT)
     layout.update(overrides)
     fig.update_layout(layout)
+    fig.update_xaxes(
+        tickfont=dict(color="#334155", size=11),
+        title_font=dict(color="#0f172a", size=12)
+    )
+    fig.update_yaxes(
+        tickfont=dict(color="#334155", size=11),
+        title_font=dict(color="#0f172a", size=12)
+    )
+    return fig
+
+
+def _add_snapshot_vline(fig, snapshot_marker):
+    """Draw a clean vertical dashed line & pill tag highlighting the active Snapshot Year."""
+    if snapshot_marker is not None:
+        fig.add_vline(
+            x=snapshot_marker,
+            line_width=2.2,
+            line_dash="dash",
+            line_color="#dc2626",
+            annotation_text=f"Snapshot: {snapshot_marker}",
+            annotation_position="top right",
+            annotation_font=dict(size=11, color="#991b1b"),
+            annotation_bgcolor="#fef2f2",
+            annotation_bordercolor="#fecaca",
+            annotation_borderwidth=1
+        )
     return fig
 
 
@@ -46,17 +72,221 @@ def _empty_figure(message="Data Not Available for the selected filters"):
     )
 
 
+def create_global_forest_heatmap(df_panel, df_hotspots=None, start_year=1990, end_year=2025, snapshot_year=2020, scope="world", highlight_iso3=None, mode="period_change", unit_choice="Million Hectares (Mha)", time_mode="range"):
+    """
+    Global Forest Change Heatmap (Choropleth):
+    Supports mutually exclusive 'range' (start_year..end_year) and 'snapshot' (single year) modes.
+    Explicitly shows whether each country DECREASED or INCREASED in forest cover.
+    """
+    ref_yr = snapshot_year if time_mode == "snapshot" else end_year
+    p_start = df_panel[df_panel["Year"] == start_year][["ISO3", "Entity", "Continent", "Forest_Area_ha"]].rename(
+        columns={"Forest_Area_ha": "Area_Start_ha"}
+    )
+    p_end = df_panel[df_panel["Year"] == end_year][["ISO3", "Forest_Area_ha"]].rename(
+        columns={"Forest_Area_ha": "Area_End_ha"}
+    )
+    p_snap = df_panel[df_panel["Year"] == ref_yr][["ISO3", "Entity", "Continent", "Forest_Area_ha", "Forest_Share_pct", "Annual_Change_ha"]].rename(
+        columns={"Forest_Area_ha": "Area_Snap_ha", "Annual_Change_ha": "Annual_Snap_ha"}
+    )
+
+    if time_mode == "snapshot":
+        merged = p_snap.copy()
+        merged["Area_Start_ha"] = merged["Area_Snap_ha"]
+        merged["Area_End_ha"] = merged["Area_Snap_ha"]
+    else:
+        merged = p_start.merge(p_end, on="ISO3", how="inner").merge(
+            p_snap[["ISO3", "Area_Snap_ha", "Forest_Share_pct", "Annual_Snap_ha"]], on="ISO3", how="left"
+        )
+
+    if df_hotspots is not None and "Dominant_Driver" in df_hotspots.columns:
+        merged = merged.merge(df_hotspots[["ISO3", "Dominant_Driver"]], on="ISO3", how="left")
+    else:
+        merged["Dominant_Driver"] = "Data Not Available"
+    merged["Dominant_Driver"] = merged["Dominant_Driver"].fillna("Data Not Available")
+
+    if merged.empty:
+        return _empty_figure(f"Data Not Available for {ref_yr if time_mode == 'snapshot' else f'{start_year}–{end_year}'}")
+
+    if "Square" in unit_choice:
+        divisor, unit_lbl, val_fmt = 100.0, "km²", ",.0f"
+    elif "Hectares (ha)" in unit_choice:
+        divisor, unit_lbl, val_fmt = 1.0, "ha", ",.0f"
+    else:
+        divisor, unit_lbl, val_fmt = 1_000_000.0, "Mha", ",.2f"
+
+    merged["Annual_Snap_Unit"] = merged["Annual_Snap_ha"] / divisor
+    merged["Area_Snap_Unit"] = merged["Area_Snap_ha"] / divisor
+    merged["Annual_Pct"] = np.where(
+        (merged["Area_Snap_ha"] > 0) & merged["Annual_Snap_ha"].notna(),
+        (merged["Annual_Snap_ha"] / merged["Area_Snap_ha"]) * 100.0,
+        np.nan
+    )
+
+    if time_mode == "snapshot":
+        if ref_yr == 1990 and mode in ["period_change", "annual_rate", "pct_change"]:
+            return _empty_figure("Annual forest change rate begins in 1991 (1990 is the baseline inventory year). Select 1991–2025 or choose Year Range mode.")
+        merged["Primary_Delta_ha"] = merged["Annual_Snap_ha"]
+        merged["Primary_Delta_Unit"] = merged["Annual_Snap_Unit"]
+        merged["Primary_Pct"] = merged["Annual_Pct"]
+        effective_mode = "pct_change" if mode == "pct_change" else "annual_rate"
+    else:
+        merged["Primary_Delta_ha"] = merged["Area_End_ha"] - merged["Area_Start_ha"]
+        merged["Primary_Delta_Unit"] = merged["Primary_Delta_ha"] / divisor
+        merged["Primary_Pct"] = np.where(
+            merged["Area_Start_ha"] > 0,
+            (merged["Primary_Delta_ha"] / merged["Area_Start_ha"]) * 100.0,
+            0.0
+        )
+        effective_mode = "annual_rate" if (start_year == end_year and mode == "period_change") else mode
+
+    def status_badge(val):
+        if pd.isna(val):
+            return "Data Not Available"
+        thresh = -100 if time_mode == "snapshot" else -500
+        pos_thresh = 100 if time_mode == "snapshot" else 500
+        if val < thresh:
+            return "🔴 DECREASED (Forest Loss)"
+        if val > pos_thresh:
+            return "🟢 INCREASED (Forest Gain)"
+        return "⚪ STABLE (No Net Change)"
+
+    def annual_badge(val):
+        if pd.isna(val):
+            return "Data Not Available"
+        conv = val / divisor
+        num_str = f"{conv:+,.0f}" if divisor <= 100.0 else f"{conv:+,.3f}"
+        if val < -100:
+            return f"{num_str} {unit_lbl}/yr (Decreased)"
+        if val > 100:
+            return f"{num_str} {unit_lbl}/yr (Increased)"
+        return f"0 {unit_lbl}/yr (Stable)"
+
+    merged["Status_Badge"] = merged["Primary_Delta_ha"].apply(status_badge)
+    merged["Annual_Status_Text"] = merged["Annual_Snap_ha"].apply(annual_badge)
+
+    if effective_mode == "annual_rate":
+        z_col = "Annual_Snap_Unit"
+        title = f"Global Forest Heatmap: Annual Rate ({ref_yr}) — Decreased vs. Increased"
+        cb_title = f"{unit_lbl} / yr"
+    elif effective_mode == "pct_change":
+        z_col = "Primary_Pct"
+        lbl_span = f"{ref_yr} Annual % Rate" if time_mode == "snapshot" else f"{start_year}–{end_year} % Change"
+        title = f"Global Forest Heatmap: {lbl_span} — Decreased vs. Increased"
+        cb_title = "% Rate" if time_mode == "snapshot" else "% Change"
+    else:
+        z_col = "Primary_Delta_Unit"
+        title = f"Global Forest Heatmap: Net Forest Change ({start_year}–{end_year}) — Decreased vs. Increased"
+        cb_title = f"Net {unit_lbl}"
+
+    valid_z = merged[z_col].dropna()
+    q03 = valid_z.quantile(0.03) if not valid_z.empty else -2.0
+    q97 = valid_z.quantile(0.97) if not valid_z.empty else 2.0
+    max_abs = max(abs(float(q03)), abs(float(q97)))
+    if pd.isna(max_abs) or max_abs == 0:
+        max_abs = float(valid_z.abs().max()) if (not valid_z.empty and valid_z.abs().max() > 0) else 2.0
+
+    line_colors = ["#0f172a" if iso == highlight_iso3 else "#ffffff" for iso in merged["ISO3"]]
+    line_widths = [3.0 if iso == highlight_iso3 else 0.7 for iso in merged["ISO3"]]
+
+    if time_mode == "snapshot":
+        hover_tpl = (
+            "<b>%{text} (%{location})</b> — %{customdata[0]}<br>"
+            f"<b>Status ({ref_yr}): %{{customdata[1]}}</b><br>"
+            f"Annual Change ({ref_yr}): <b>%{{customdata[4]}} (%{{customdata[3]:+.2f}}%/yr)</b><br>"
+            f"Forest Area ({ref_yr}): %{{customdata[5]:{val_fmt}}} {unit_lbl} (%{{customdata[6]:.1f}}% of land)<br>"
+            "Primary Cause: %{customdata[7]}"
+            "<extra></extra>"
+        )
+    else:
+        hover_tpl = (
+            "<b>%{text} (%{location})</b> — %{customdata[0]}<br>"
+            "<b>Status: %{customdata[1]}</b><br>"
+            f"Net Change ({start_year}–{end_year}): <b>%{{customdata[2]:+{val_fmt}}} {unit_lbl} (%{{customdata[3]:+.1f}}%)</b><br>"
+            f"Annual Rate ({ref_yr}): %{{customdata[4]}}<br>"
+            f"Forest Area ({ref_yr}): %{{customdata[5]:{val_fmt}}} {unit_lbl} (%{{customdata[6]:.1f}}% of land)<br>"
+            "Primary Cause: %{customdata[7]}"
+            "<extra></extra>"
+        )
+
+    fig = go.Figure(go.Choropleth(
+        locations=merged["ISO3"].tolist(),
+        z=merged[z_col].fillna(0).tolist(),
+        text=merged["Entity"].tolist(),
+        customdata=np.stack([
+            merged["Continent"],
+            merged["Status_Badge"],
+            merged["Primary_Delta_Unit"].fillna(0),
+            merged["Primary_Pct"].fillna(0),
+            merged["Annual_Status_Text"],
+            merged["Area_Snap_Unit"].fillna(0),
+            merged["Forest_Share_pct"].fillna(0),
+            merged["Dominant_Driver"]
+        ], axis=-1).tolist(),
+        colorscale=[
+            [0.0, "#991b1b"],
+            [0.32, "#ef4444"],
+            [0.47, "#fecaca"],
+            [0.50, "#f1f5f9"],
+            [0.53, "#bbf7d0"],
+            [0.68, "#22c55e"],
+            [1.0, "#14532d"]
+        ],
+        zmin=-max_abs,
+        zmax=max_abs,
+        zmid=0,
+        marker=dict(
+            line=dict(color=line_colors, width=line_widths)
+        ),
+        colorbar=dict(
+            title=dict(text=cb_title, font=dict(color="#0f172a", size=12)),
+            tickfont=dict(color="#0f172a", size=11),
+            thickness=15,
+            len=0.78,
+            x=0.98
+        ),
+        hovertemplate=hover_tpl
+    ))
+
+    geo_cfg = dict(
+        scope=scope,
+        showframe=False,
+        showcoastlines=True,
+        coastlinecolor="#94a3b8",
+        projection_type="natural earth" if scope == "world" else "mercator",
+        bgcolor="#ffffff",
+        lakecolor="#eff6ff",
+        showland=True,
+        landcolor="#f1f5f9",
+        showcountries=True,
+        countrycolor="#e2e8f0"
+    )
+    if scope == "world" and len(merged) < 160:
+        geo_cfg["fitbounds"] = "locations"
+
+    return _apply_layout(
+        fig,
+        title=dict(text=title, font=dict(size=16, color="#0f172a")),
+        geo=geo_cfg,
+        margin=dict(l=5, r=5, t=55, b=5)
+    )
+
+
 def create_world_choropleth(df_panel, year=2020, metric="Annual_Change_Mha", scope="world", highlight_iso3=None):
     """
     World choropleth map showing country-level deforestation or forest area.
-    Supports continent zoom scope and highlighting a focus country.
+    Explicitly indicates Decreased vs. Increased on hover.
     """
     df_yr = df_panel[df_panel["Year"] == year].copy()
     if df_yr.empty:
         return _empty_figure(f"Data Not Available for Year {year}")
 
+    df_yr["Direction"] = np.where(
+        df_yr["Annual_Change_ha"] < -500, "🔴 DECREASED (Loss)",
+        np.where(df_yr["Annual_Change_ha"] > 500, "🟢 INCREASED (Gain)", "⚪ STABLE")
+    )
+
     if metric == "Annual_Change_Mha":
-        title = f"Annual Net Forest Area Change by Country ({year}) [Million Hectares/yr]"
+        title = f"Annual Net Forest Change by Country ({year}) — Decreased vs. Increased"
         color_col = "Annual_Change_Mha"
         q02 = df_yr[color_col].quantile(0.02)
         q98 = df_yr[color_col].quantile(0.98)
@@ -72,17 +302,17 @@ def create_world_choropleth(df_panel, year=2020, metric="Annual_Change_Mha", sco
             hover_data={
                 "ISO3": True,
                 "Continent": True,
+                "Direction": True,
                 "Forest_Area_Mha": ":.2f",
                 "Forest_Share_pct": ":.1f",
-                "Annual_Change_Mha": ":+.3f",
-                "Net_Change_Type": True
+                "Annual_Change_Mha": ":+.3f"
             },
             color_continuous_scale=[
-                [0.0, THEME["loss_red"]],
+                [0.0, "#991b1b"],
                 [0.45, "#fca5a5"],
-                [0.5, "#f3f4f6"],
+                [0.5, "#f1f5f9"],
                 [0.55, "#86efac"],
-                [1.0, THEME["gain_green"]]
+                [1.0, "#14532d"]
             ],
             range_color=[-max_abs, max_abs],
             labels={"Annual_Change_Mha": "Net Change (Mha/yr)", "Forest_Share_pct": "Forest Share (%)"}
@@ -97,6 +327,7 @@ def create_world_choropleth(df_panel, year=2020, metric="Annual_Change_Mha", sco
             hover_data={
                 "ISO3": True,
                 "Continent": True,
+                "Direction": True,
                 "Forest_Area_Mha": ":.2f",
                 "Forest_Share_pct": ":.1f"
             },
@@ -120,6 +351,7 @@ def create_world_choropleth(df_panel, year=2020, metric="Annual_Change_Mha", sco
             hover_data={
                 "ISO3": True,
                 "Continent": True,
+                "Direction": True,
                 "Forest_Area_Mha": ":.2f",
                 "Forest_Share_pct": ":.1f"
             },
@@ -133,7 +365,6 @@ def create_world_choropleth(df_panel, year=2020, metric="Annual_Change_Mha", sco
             labels={"Forest_Area_Mha": "Forest Area (Mha)", "Forest_Share_pct": "Forest Share (%)"}
         )
 
-    # Highlight specific country with high-contrast boundary if requested
     if highlight_iso3:
         sub_hi = df_yr[df_yr["ISO3"] == highlight_iso3]
         if not sub_hi.empty:
@@ -150,28 +381,29 @@ def create_world_choropleth(df_panel, year=2020, metric="Annual_Change_Mha", sco
                 )
             )
 
-    fig.update_layout(
-        title=dict(text=title, font=dict(size=15, color=THEME["primary"])),
+    return _apply_layout(
+        fig,
+        title=dict(text=title, font=dict(size=15, color="#0f172a")),
         geo=dict(
             scope=scope,
             showframe=False,
             showcoastlines=True,
-            coastlinecolor="#cbd5e1",
+            coastlinecolor="#94a3b8",
             projection_type="natural earth" if scope == "world" else "mercator",
-            bgcolor="rgba(0,0,0,0)",
+            bgcolor="#ffffff",
             lakecolor="#f0f9ff",
             showland=True,
-            landcolor="#f8fafc"
+            landcolor="#f1f5f9"
         ),
-        margin=dict(l=0, r=0, t=45, b=0),
+        margin=dict(l=0, r=0, t=55, b=0),
         coloraxis_colorbar=dict(
-            title=dict(font=dict(size=11)),
+            title=dict(font=dict(size=11, color="#0f172a")),
+            tickfont=dict(size=11, color="#0f172a"),
             thickness=14,
             len=0.75,
             x=0.98
         )
     )
-    return fig
 
 
 def create_cause_world_choropleth(df_cause, cause_col, cause_label, year_range=(2001, 2024), scope="world", highlight_iso3=None, cause_color="#dc2626"):
@@ -194,54 +426,53 @@ def create_cause_world_choropleth(df_cause, cause_col, cause_label, year_range=(
     q98 = agg["Loss_k_ha"].quantile(0.98)
     z_max = q98 if (pd.notna(q98) and q98 > 0) else agg["Loss_k_ha"].max()
 
-    fig = px.choropleth(
-        agg,
-        locations="Code",
-        color="Loss_k_ha",
-        hover_name="Entity",
-        hover_data={
-            "Code": True,
-            "Continent": True,
-            "Loss_k_ha": ":,.1f",
-            "Loss_Mha": ":.3f"
-        },
-        color_continuous_scale=[[0.0, "#f8fafc"], [0.15, "#fef3c7"], [0.5, "#fb923c"], [1.0, cause_color]],
-        range_color=[0, z_max],
-        labels={"Loss_k_ha": "Loss (k ha)", "Loss_Mha": "Loss (Mha)"}
-    )
+    line_colors = ["#0f172a" if iso == highlight_iso3 else "#ffffff" for iso in agg["Code"]]
+    line_widths = [3.0 if iso == highlight_iso3 else 0.7 for iso in agg["Code"]]
 
-    if highlight_iso3:
-        sub_hi = agg[agg["Code"] == highlight_iso3]
-        if not sub_hi.empty:
-            fig.add_trace(
-                go.Choropleth(
-                    locations=sub_hi["Code"],
-                    z=[1],
-                    colorscale=[[0, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0)"]],
-                    showscale=False,
-                    marker_line_color="#111827",
-                    marker_line_width=2.8,
-                    hoverinfo="skip"
-                )
-            )
+    fig = go.Figure(go.Choropleth(
+        locations=agg["Code"].tolist(),
+        z=agg["Loss_k_ha"].fillna(0).tolist(),
+        text=agg["Entity"].tolist(),
+        customdata=np.stack([agg["Continent"], agg["Loss_Mha"].fillna(0)], axis=-1).tolist(),
+        colorscale=[[0.0, "#f8fafc"], [0.15, "#fef3c7"], [0.5, "#fb923c"], [1.0, cause_color]],
+        zmin=0,
+        zmax=float(z_max) if (pd.notna(z_max) and z_max > 0) else 10.0,
+        marker=dict(line=dict(color=line_colors, width=line_widths)),
+        colorbar=dict(
+            title=dict(text="k ha", font=dict(color="#0f172a", size=11)),
+            tickfont=dict(color="#0f172a", size=11),
+            thickness=14,
+            len=0.75,
+            x=0.98
+        ),
+        hovertemplate=(
+            "<b>%{text} (%{location})</b> — %{customdata[0]}<br>"
+            f"<b>{cause_label}</b>: %{{z:,.1f}} k ha (%{{customdata[1]:.3f}} Mha)<extra></extra>"
+        )
+    ))
 
     yr_text = f"{y0}" if y0 == y1 else f"{y0}–{y1}"
-    fig.update_layout(
-        title=dict(text=f"Global Map of {cause_label} ({yr_text}) [Thousand Hectares]", font=dict(size=15, color=THEME["primary"])),
-        geo=dict(
-            scope=scope,
-            showframe=False,
-            showcoastlines=True,
-            coastlinecolor="#cbd5e1",
-            projection_type="natural earth" if scope == "world" else "mercator",
-            bgcolor="rgba(0,0,0,0)",
-            showland=True,
-            landcolor="#f8fafc"
-        ),
-        margin=dict(l=0, r=0, t=45, b=0),
-        coloraxis_colorbar=dict(title="k ha", thickness=14, len=0.75, x=0.98)
+    geo_cfg = dict(
+        scope=scope,
+        showframe=False,
+        showcoastlines=True,
+        coastlinecolor="#94a3b8",
+        projection_type="natural earth" if scope == "world" else "mercator",
+        bgcolor="#ffffff",
+        showland=True,
+        landcolor="#f1f5f9",
+        showcountries=True,
+        countrycolor="#e2e8f0"
     )
-    return fig
+    if scope == "world" and len(agg) < 160:
+        geo_cfg["fitbounds"] = "locations"
+
+    return _apply_layout(
+        fig,
+        title=dict(text=f"Global Map of {cause_label} ({yr_text}) [Thousand Hectares]", font=dict(size=15, color="#0f172a")),
+        geo=geo_cfg,
+        margin=dict(l=0, r=0, t=55, b=0)
+    )
 
 
 def create_geopandas_country_zoom_map(gdf_world, df_panel, iso3, year=2020):
@@ -309,17 +540,22 @@ def create_geopandas_country_zoom_map(gdf_world, df_panel, iso3, year=2020):
         coastlinecolor="#94a3b8",
         showcountries=True,
         countrycolor="#cbd5e1",
-        bgcolor="rgba(0,0,0,0)"
+        bgcolor="#ffffff"
     )
-    fig.update_layout(
-        title=dict(text=f"GeoPandas Spatial Focus: {country_label} ({year})", font=dict(size=14, color=THEME["primary"])),
-        margin=dict(l=0, r=0, t=40, b=0),
-        coloraxis_colorbar=dict(title="Cover %", thickness=12, len=0.7)
+    return _apply_layout(
+        fig,
+        title=dict(text=f"Spatial Focus: {country_label} ({year})", font=dict(size=14, color="#0f172a")),
+        margin=dict(l=0, r=0, t=50, b=0),
+        coloraxis_colorbar=dict(
+            title=dict(text="Cover %", font=dict(color="#0f172a", size=11)),
+            tickfont=dict(color="#0f172a", size=11),
+            thickness=12,
+            len=0.7
+        )
     )
-    return fig
 
 
-def create_global_trend_chart(df_global, start_year=1990, end_year=2025, title_prefix="Global"):
+def create_global_trend_chart(df_global, start_year=1990, end_year=2025, title_prefix="Global", snapshot_marker=None):
     """
     Historical trajectory of forest area and net change across start_year..end_year.
     """
@@ -340,7 +576,7 @@ def create_global_trend_chart(df_global, start_year=1990, end_year=2025, title_p
         hovertemplate="<b>Year %{x}</b><br>Forest Area: %{y:,.2f} Mha<extra></extra>"
     ))
 
-    if title_prefix == "Global":
+    if title_prefix == "Global" and snapshot_marker is None:
         milestones = [
             {"year": 1992, "text": "Rio Earth Summit (1992)", "y_shift": -35},
             {"year": 1997, "text": "Kyoto Protocol (1997)", "y_shift": 30},
@@ -366,9 +602,15 @@ def create_global_trend_chart(df_global, start_year=1990, end_year=2025, title_p
                         borderwidth=1
                     )
 
+    _add_snapshot_vline(fig, snapshot_marker)
+    title_txt = (
+        f"{title_prefix} Forest Area Context (Snapshot: {snapshot_marker})"
+        if snapshot_marker is not None
+        else f"{title_prefix} Forest Area Trajectory ({start_year}–{end_year})"
+    )
     return _apply_layout(
         fig,
-        title=dict(text=f"{title_prefix} Forest Area Trajectory ({start_year}–{end_year})", font=dict(size=15, color=THEME["primary"])),
+        title=dict(text=title_txt, font=dict(size=15, color=THEME["primary"])),
         xaxis=dict(title="Year", showgrid=True, gridcolor="#f1f5f9"),
         yaxis=dict(title="Forest Area (Million Hectares)", showgrid=True, gridcolor="#f1f5f9"),
         hovermode="x unified"
@@ -591,7 +833,7 @@ def create_cause_top_countries_bar(df_cause, cause_col, cause_label, year_range=
     )
 
 
-def create_cause_trajectory_by_continent(df_cause, cause_col, cause_label, year_range=(2001, 2024)):
+def create_cause_trajectory_by_continent(df_cause, cause_col, cause_label, year_range=(2001, 2024), snapshot_marker=None):
     """
     Stacked area / multi-line temporal trajectory of a SPECIFIC cause broken down by Continent!
     """
@@ -615,6 +857,7 @@ def create_cause_trajectory_by_continent(df_cause, cause_col, cause_label, year_
         title=f"Continental Trajectory of {cause_label} ({y0}–{y1})",
         labels={"Loss_Mha": "Annual Loss (Million Hectares)"}
     )
+    _add_snapshot_vline(fig, snapshot_marker)
     return _apply_layout(
         fig,
         title=dict(font=dict(size=15, color=THEME["primary"])),
@@ -718,7 +961,62 @@ def create_top_countries_bar(df_hotspots, top_n=10, ascending=True):
     )
 
 
-def create_regional_comparison_chart(df_reg, metric="Forest_Area_Mha", start_year=1990, end_year=2025):
+def create_top_countries_annual_bar(df_panel, year, top_n=10, ascending=True, df_hotspots=None):
+    """
+    Horizontal bar chart ranking countries by SINGLE-YEAR Annual Net Change in a Snapshot Year.
+    """
+    if year == 1990:
+        return _empty_figure("Annual forest change rates begin in 1991 (1990 is the baseline inventory year).")
+
+    sub = df_panel[df_panel["Year"] == year].dropna(subset=["Annual_Change_Mha"]).copy()
+    if sub.empty:
+        return _empty_figure(f"Data Not Available for Snapshot Year {year}")
+
+    if df_hotspots is not None and "Dominant_Driver" in df_hotspots.columns:
+        sub = sub.merge(df_hotspots[["ISO3", "Dominant_Driver"]], on="ISO3", how="left")
+    else:
+        sub["Dominant_Driver"] = "Data Not Available"
+    sub["Dominant_Driver"] = sub["Dominant_Driver"].fillna("Data Not Available")
+    sub["Annual_Pct"] = np.where(sub["Forest_Area_ha"] > 0, (sub["Annual_Change_ha"] / sub["Forest_Area_ha"]) * 100.0, 0.0)
+
+    if ascending:
+        df_top = sub[sub["Annual_Change_Mha"] < 0].sort_values("Annual_Change_Mha").head(top_n).copy()
+        title = f"Top {len(df_top)} Countries by Annual Forest Loss ({year})"
+        color_seq = [THEME["loss_red"]] * len(df_top)
+        x_label = f"Annual Net Loss in {year} (Mha/yr)"
+    else:
+        df_top = sub[sub["Annual_Change_Mha"] > 0].sort_values("Annual_Change_Mha", ascending=False).head(top_n).copy()
+        title = f"Top {len(df_top)} Countries by Annual Forest Gain ({year})"
+        color_seq = [THEME["gain_green"]] * len(df_top)
+        x_label = f"Annual Net Expansion in {year} (Mha/yr)"
+
+    if df_top.empty:
+        return _empty_figure(f"No countries match this loss/gain direction in {year}.")
+
+    df_top = df_top.iloc[::-1]
+    fig = go.Figure(go.Bar(
+        x=df_top["Annual_Change_Mha"].tolist(),
+        y=df_top["Entity"].tolist(),
+        orientation="h",
+        marker=dict(color=color_seq),
+        text=[f"{val:+.3f} Mha/yr ({pct:+.2f}%)" for val, pct in zip(df_top["Annual_Change_Mha"], df_top["Annual_Pct"])],
+        textposition="outside",
+        customdata=np.stack([df_top["Continent"], df_top["Dominant_Driver"]], axis=-1).tolist(),
+        hovertemplate=f"<b>%{{y}}</b> (%{{customdata[0]}})<br>Annual Change ({year}): %{{x:+.3f}} Mha/yr<br>Primary Driver: %{{customdata[1]}}<extra></extra>"
+    ))
+
+    x_min = min(float(df_top["Annual_Change_Mha"].min()) * 1.35, 0) if ascending else 0
+    x_max = 0 if ascending else float(df_top["Annual_Change_Mha"].max()) * 1.35
+
+    return _apply_layout(
+        fig,
+        title=dict(text=title, font=dict(size=15, color=THEME["primary"])),
+        xaxis=dict(title=x_label, showgrid=True, gridcolor="#f1f5f9", range=[x_min, x_max]),
+        yaxis=dict(title="")
+    )
+
+
+def create_regional_comparison_chart(df_reg, metric="Forest_Area_Mha", start_year=1990, end_year=2025, snapshot_marker=None):
     """
     Multi-line regional comparison across Africa, Asia, Europe, North America, South America, Oceania.
     """
@@ -743,6 +1041,7 @@ def create_regional_comparison_chart(df_reg, metric="Forest_Area_Mha", start_yea
         labels={"Year": "Year", metric: metric_labels.get(metric, metric)},
         color_discrete_map=CONTINENT_COLORS
     )
+    _add_snapshot_vline(fig, snapshot_marker)
     return _apply_layout(
         fig,
         title=dict(font=dict(size=15, color=THEME["primary"])),
@@ -752,7 +1051,7 @@ def create_regional_comparison_chart(df_reg, metric="Forest_Area_Mha", start_yea
     )
 
 
-def create_country_deep_dive_chart(df_panel, iso3="BRA", start_year=1990, end_year=2025):
+def create_country_deep_dive_chart(df_panel, iso3="BRA", start_year=1990, end_year=2025, snapshot_marker=None):
     """
     Dual-axis historical trajectory for a specific selected country.
     """
@@ -781,17 +1080,22 @@ def create_country_deep_dive_chart(df_panel, iso3="BRA", start_year=1990, end_ye
         hovertemplate="<b>%{x}</b><br>Annual Net Change: %{y:+.4f} Mha/yr<extra></extra>"
     ))
 
+    _add_snapshot_vline(fig, snapshot_marker)
+    title_txt = (
+        f"Historical Forest Trajectory: {country_name} ({iso3}) [Snapshot: {snapshot_marker}]"
+        if snapshot_marker is not None
+        else f"Historical Forest Trajectory: {country_name} ({iso3}) [{start_year}–{end_year}]"
+    )
     return _apply_layout(
         fig,
-        title=dict(text=f"Historical Forest Trajectory: {country_name} ({iso3}) [{start_year}–{end_year}]", font=dict(size=15, color=THEME["primary"])),
+        title=dict(text=title_txt, font=dict(size=15, color="#0f172a")),
         xaxis=dict(title="Year", showgrid=True, gridcolor="#f1f5f9"),
         yaxis=dict(title="Forest Area (Million Hectares)", side="left", showgrid=True, gridcolor="#f1f5f9"),
-        yaxis2=dict(title="Annual Net Change (Mha/yr)", side="right", overlaying="y", showgrid=False),
-        legend=dict(x=0.01, y=1.08, orientation="h", bgcolor="rgba(255,255,255,0.8)")
+        yaxis2=dict(title="Annual Net Change (Mha/yr)", side="right", overlaying="y", showgrid=False)
     )
 
 
-def create_country_comparison_lines(df_panel, iso3_list, metric="Forest_Area_Mha", normalize=False, start_year=1990, end_year=2025):
+def create_country_comparison_lines(df_panel, iso3_list, metric="Forest_Area_Mha", normalize=False, start_year=1990, end_year=2025, snapshot_marker=None):
     """
     Compare multiple countries side-by-side (normalized to Start Year = 100 or absolute).
     """
@@ -828,6 +1132,7 @@ def create_country_comparison_lines(df_panel, iso3_list, metric="Forest_Area_Mha
     if normalize and metric == "Forest_Area_Mha":
         fig.add_hline(y=100, line_dash="dot", line_color="#64748b", annotation_text="Baseline (100)")
 
+    _add_snapshot_vline(fig, snapshot_marker)
     return _apply_layout(
         fig,
         title=dict(font=dict(size=15, color=THEME["primary"])),
@@ -999,15 +1304,15 @@ def create_country_treemap(df_hotspots, mode="loss"):
     )
 
 
-def create_slope_dumbbell_chart(df_hotspots, top_n=12):
+def create_slope_dumbbell_chart(df_hotspots, top_n=12, start_label=1990, end_label=2025):
     """
-    Dumbbell chart comparing 1990 vs. Latest Forest Area for top changing countries.
+    Dumbbell chart comparing start_label vs. end_label Forest Area for top changing countries.
     """
     sub = df_hotspots.copy()
     sub["Abs_Change"] = sub["Net_Change_1990_to_Latest_Mha"].abs()
     top_df = sub.sort_values("Abs_Change", ascending=False).head(top_n).sort_values("Net_Change_1990_to_Latest_Mha")
-    if top_df.empty:
-        return _empty_figure()
+    if top_df.empty or top_df["Abs_Change"].max() == 0:
+        return _empty_figure(f"No net difference between {start_label} and {end_label}.")
 
     fig = go.Figure()
     for _, row in top_df.iterrows():
@@ -1027,28 +1332,28 @@ def create_slope_dumbbell_chart(df_hotspots, top_n=12):
         x=top_df["Forest_Area_1990_ha"] / 1e6,
         y=top_df["Entity"],
         mode="markers",
-        name="1990 Forest Area",
+        name=f"{start_label} Forest Area",
         marker=dict(color="#64748b", size=10, symbol="circle"),
-        hovertemplate="<b>%{y}</b> (1990): %{x:,.1f} Mha<extra></extra>"
+        hovertemplate=f"<b>%{{y}}</b> ({start_label}): %{{x:,.1f}} Mha<extra></extra>"
     ))
     fig.add_trace(go.Scatter(
         x=top_df["Forest_Area_Latest_ha"] / 1e6,
         y=top_df["Entity"],
         mode="markers",
-        name="2025 Forest Area",
+        name=f"{end_label} Forest Area",
         marker=dict(color=THEME["primary"], size=11, symbol="diamond"),
-        hovertemplate="<b>%{y}</b> (2025): %{x:,.1f} Mha<extra></extra>"
+        hovertemplate=f"<b>%{{y}}</b> ({end_label}): %{{x:,.1f}} Mha<extra></extra>"
     ))
 
     return _apply_layout(
         fig,
-        title=dict(text=f"Forest Shift Dumbbell (1990 vs. 2025): Top {top_n} Largest Absolute Shifts", font=dict(size=15, color=THEME["primary"])),
+        title=dict(text=f"Forest Shift Dumbbell ({start_label} vs. {end_label}): Top {top_n} Largest Absolute Shifts", font=dict(size=15, color=THEME["primary"])),
         xaxis=dict(title="Total Forest Area (Million Hectares)", showgrid=True, gridcolor="#f1f5f9"),
         yaxis=dict(title="")
     )
 
 
-def create_environmental_impact_chart(df_global, start_year=1990, end_year=2024, title_prefix="Global"):
+def create_environmental_impact_chart(df_global, start_year=1990, end_year=2024, title_prefix="Global", snapshot_marker=None):
     """
     Environmental impact: CO2 emissions from land-use change across start_year..end_year.
     """
@@ -1069,6 +1374,7 @@ def create_environmental_impact_chart(df_global, start_year=1990, end_year=2024,
         hovertemplate="<b>Year %{x}</b><br>Emissions: %{y:.2f} Gt CO₂/yr<extra></extra>"
     ))
 
+    _add_snapshot_vline(fig, snapshot_marker)
     return _apply_layout(
         fig,
         title=dict(text=f"{title_prefix} Land-Use CO₂ Emissions ({df_sub['Year'].min()}–{df_sub['Year'].max()})", font=dict(size=15, color=THEME["primary"])),

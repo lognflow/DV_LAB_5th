@@ -2,7 +2,7 @@
 
 A professional, interactive, and research-grade scientific intelligence dashboard and analytical suite investigating global forest dynamics, proximate and economic deforestation drivers, continental hotspots, and ecological cascades between 1990 and 2025.
 
-Built with **Python 3.11**, **Streamlit**, **Pandas**, **NumPy**, **Plotly**, **GeoPandas**, and **Jupyter Notebooks (.ipynb)**.
+Built with **Python 3.11**, **FastAPI**, **Uvicorn**, **HTML5/CSS3/JavaScript**, **Pandas**, **NumPy**, **Plotly**, **GeoPandas**, and **Jupyter Notebooks (.ipynb)**.
 
 ---
 
@@ -57,10 +57,12 @@ In strict accordance with empirical research standards, **no synthetic, dummy, o
 
 ```
 d:\DVLAB\
-├── app.py                                       # Full-featured Streamlit interactive web dashboard
-├── README.md                                    # Comprehensive documentation and scientific audit
-├── assets/
-│   └── style.css                                # Forest-green and white CSS styling framework
+├── server.py                                    # FastAPI backend API & static frontend host
+├── README.md                                    # Comprehensive documentation
+├── frontend/                                    # Custom responsive HTML/CSS/JS dashboard UI
+│   ├── index.html                               # Executive 6-tab single-page interface
+│   ├── css/dashboard.css                        # Forest-green & crisp white high-contrast theme
+│   └── js/dashboard.js                          # Interactive Plotly.js controller & fullscreen logic
 ├── data/
 │   ├── raw/                                     # Original authentic datasets downloaded from official endpoints
 │   │   ├── forest_area.csv
@@ -105,10 +107,10 @@ d:\DVLAB\
 
 ## 🚀 How to Run the Project
 
-### 1. Launch the Streamlit Interactive Dashboard
-Run the dashboard locally in your browser:
+### 1. Launch the Interactive Web Dashboard
+Run the FastAPI + Uvicorn server locally:
 ```powershell
-streamlit run app.py
+uvicorn server:app --host 0.0.0.0 --port 8501
 ```
 Open **`http://localhost:8501`** in any web browser.
 
@@ -129,38 +131,32 @@ pytest tests/test_dashboard.py -v
 
 ---
 
-## 🖥️ Streamlit Dashboard Feature Tour
+## 🖥️ Web Dashboard Feature Tour
 
-The redesigned executive dashboard features an active filter status ribbon, dynamic unit conversion, and 8 richly interactive views:
+The custom HTML/CSS/JavaScript dashboard features a collapsible left filter menu (with one-click Full Screen expansion), crisp dark-on-light typography, and 6 interactive views:
 
-1. **🌐 Overview & KPIs:**
-   - 5 dynamic KPI metric cards calculated live for any selected country, continent selection, year range, and active deforestation cause.
-   - Global/scoped forest area trajectory (`1990–2025`) with policy milestones, gross loss vs. expansion chart, and hierarchical **Continent → Country Treemap**.
+1. **🌐 Overview & Global Heatmap:**
+   - 5 reactive KPI cards calculated dynamically for any country, continent selection, year range, and active deforestation cause.
+   - Full-width **Global Forest Change Heatmap** with explicit **`🔴 DECREASED` / `🟢 INCREASED`** hover tooltips and click-to-inspect country jumping.
+   - Global/scoped forest area trajectory (`1990–2025`), cause top countries / gross gain-vs-loss balance, and hierarchical **Continent → Country Treemap**.
 
 2. **🏳️ Country-Wise Analytics:**
-   - **Country Scorecard Banner** with hotspot classification, dominant physical driver, and top commodity driver.
-   - **GeoPandas Zoomed Spatial Map** isolating the target country and its neighboring forest cover.
-   - **Dual-Axis Country Trajectory** + **Cause-Specific Country Timeline** + **FAO Gross Deforestation vs. Expansion / Commodity Footprint**.
-   - **Multi-Country Comparison Laboratory**: Compare up to 6 countries side-by-side (normalized `Start Year = 100` or absolute), **Driver Fingerprint Radar Chart**, and **Annual Spike Intensity Heatmap**.
+   - Country scorecard with direction badge (`DECREASED` / `INCREASED`), dominant physical driver, and top commodity driver.
+   - GeoPandas spatial focus map + dual-axis trajectory + cause-specific country timeline + commodity/gross toggle.
+   - Multi-Country Comparison (up to 6 countries, normalized `Start = 100` or absolute), Driver Fingerprint Radar Chart, and Annual Intensity Heatmap.
 
-3. **🗺️ Interactive World Map:**
-   - Dual-mode choropleth cartography switching seamlessly between **Active Cause Loss Maps** and **Forest Cover Metrics** (`Annual Net Change`, `Forest Cover %`, `Total Forest Area`), with continent zoom scope (`World`, `South America`, `Africa`, `Asia`, `Europe`, `North America`) and country highlight outline.
-
-4. **🔍 Cause-Driven Analytics (Dynamic Graph Switching):**
+3. **🔍 Cause Analytics (Dynamic Graph Switching):**
    - When **`All Causes`** is selected: Direct Drivers Donut, Commodity Attribution Bar, Stacked Longitudinal Drivers (`2001–2024`), Continental × Driver Sunburst, and Country Intensity Heatmap.
-   - When a **Specific Cause** is selected (e.g., *Wildfire*, *Permanent Agriculture*, *Logging*, *Shifting Cultivation*, *Mining*, *Beef*, *Palm Oil*, *Soy*): Dynamically renders a **Cause-Specific Global Map**, **Top 12 Countries Driven by That Cause**, **Continental Trajectory Area Chart**, **Share of National Loss Bar**, and **Cause-Specific Country × Year Spike Heatmap**.
+   - When a **Specific Cause** is selected (*Wildfire*, *Permanent Agriculture*, *Logging*, *Shifting Cultivation*, *Mining*, *Urban*, *Beef*, *Palm Oil*, *Soy*, etc.): Dynamically renders a Cause-Specific Global Map, Top 12 Countries Driven by That Cause, Continental Trajectory Area Chart, Share of National Loss Bar, Spike Heatmap, and Top 25 Country Ranking Table.
 
-5. **🔥 Hotspots & Rankings:**
-   - Dynamic period rankings (`start_year` to `end_year`), **1990 vs. 2025 Dumbbell Slope Chart**, and **Forest Change vs. Land-Use CO₂ Bubble Scatter Plot**.
+4. **🔥 Hotspots & Recovery:**
+   - Dynamic Top N loss & expansion country rankings, **1990 vs. 2025 Dumbbell Slope Chart**, Forest Change vs. Land-Use CO₂ Bubble Scatter Plot, and Forest Transition Recovery Curves.
 
-6. **📈 Historical & Forest Recovery:**
-   - Year-wise net forest balance bars, top net expanding nations, and **Forest Transition Curve** comparing recovery leaders (China, India, Vietnam, France, Spain, Costa Rica).
+5. **🌍 Regional & Impact:**
+   - 6-Continent comparative trends with area-weighted forest share %, Land-Use CO₂ trajectories, and IUCN Red List Index biodiversity curves.
 
-7. **🌍 Regional & Environmental:**
-   - 6-Continent comparative trends with **area-weighted forest share %**, Global Carbon Project land-use CO₂ trajectories, and IUCN Red List Index biodiversity extinction risk curves.
-
-8. **📊 Data Explorer & Audit:**
-   - Live search, filter, and CSV download across all 6 core datasets + full measured-vs-inferred source methodology audit.
+6. **📊 Data Explorer:**
+   - Live search, filter, and one-click CSV download across all 6 core datasets.
 
 ---
 

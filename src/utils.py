@@ -178,23 +178,26 @@ CAUSE_METADATA = {
 }
 
 PLOTLY_LAYOUT = dict(
-    font=dict(family="Inter, Segoe UI, Arial, sans-serif", color=THEME["dark_text"]),
-    plot_bgcolor="white",
-    paper_bgcolor="white",
-    margin=dict(l=40, r=30, t=55, b=40),
+    template="plotly_white",
+    font=dict(family="Inter, Segoe UI, Arial, sans-serif", color="#0f172a", size=12),
+    plot_bgcolor="#ffffff",
+    paper_bgcolor="#ffffff",
+    margin=dict(l=55, r=40, t=70, b=70),
     legend=dict(
         orientation="h",
-        yanchor="bottom",
-        y=1.02,
-        xanchor="right",
-        x=1,
-        font=dict(size=11)
+        yanchor="top",
+        y=-0.18,
+        xanchor="center",
+        x=0.5,
+        font=dict(size=12, color="#0f172a"),
+        bgcolor="rgba(255,255,255,0)"
     ),
     hoverlabel=dict(
-        bgcolor=THEME["primary"],
-        font_size=12,
-        font_color="white",
-        font_family="Inter, sans-serif"
+        bgcolor="#0f172a",
+        bordercolor="#1b4332",
+        font_size=13,
+        font_color="#ffffff",
+        font_family="Inter, Segoe UI, sans-serif"
     )
 )
 
@@ -329,9 +332,10 @@ def get_global_kpis(df_global, target_year=2025):
     }
 
 
-def compute_dynamic_kpis(df_panel, df_drivers, df_comm, start_year, end_year, continents, country_name="All Countries", selected_cause="All Causes"):
+def compute_dynamic_kpis(df_panel, df_drivers, df_comm, start_year, end_year, continents, country_name="All Countries", selected_cause="All Causes", time_mode="range", snapshot_year=None):
     """
-    Compute fully reactive KPIs based on Year Range, Continent filter, Focus Country, and Cause filter.
+    Compute fully reactive KPIs based on Time Mode ('range' or 'snapshot'),
+    Continent filter, Focus Country, and Cause filter.
     """
     if country_name != "All Countries":
         scope_df = df_panel[df_panel["Entity"] == country_name].copy()
@@ -342,19 +346,30 @@ def compute_dynamic_kpis(df_panel, df_drivers, df_comm, start_year, end_year, co
         scope_label = "Global" if len(continents) == 6 else ", ".join(continents)
         iso3 = None
 
-    # End year and start year rows
-    df_start = scope_df[scope_df["Year"] == start_year]
-    df_end = scope_df[scope_df["Year"] == end_year]
+    if time_mode == "snapshot":
+        target_yr = snapshot_year if snapshot_year is not None else end_year
+        y_start = target_yr
+        y_end = target_yr
+    else:
+        target_yr = end_year
+        y_start = start_year
+        y_end = end_year
+
+    df_start = scope_df[scope_df["Year"] == y_start]
+    df_end = scope_df[scope_df["Year"] == y_end]
 
     area_start = df_start["Forest_Area_ha"].sum() if not df_start.empty else np.nan
     area_end = df_end["Forest_Area_ha"].sum() if not df_end.empty else np.nan
-
-    net_change_period = (area_end - area_start) if (pd.notna(area_start) and pd.notna(area_end)) else np.nan
-    pct_change_period = ((net_change_period / area_start) * 100.0) if (pd.notna(net_change_period) and area_start > 0) else np.nan
-
     annual_rate_end = df_end["Annual_Change_ha"].sum() if (not df_end.empty and df_end["Annual_Change_ha"].notna().any()) else np.nan
 
-    # Area-weighted forest share in end_year
+    if time_mode == "snapshot":
+        net_change_period = annual_rate_end
+        pct_change_period = ((annual_rate_end / area_end) * 100.0) if (pd.notna(annual_rate_end) and pd.notna(area_end) and area_end > 0) else np.nan
+    else:
+        net_change_period = (area_end - area_start) if (pd.notna(area_start) and pd.notna(area_end)) else np.nan
+        pct_change_period = ((net_change_period / area_start) * 100.0) if (pd.notna(net_change_period) and area_start > 0) else np.nan
+
+    # Area-weighted forest share in target_yr
     if not df_end.empty and df_end["Land_Area_ha"].sum() > 0:
         valid_land = df_end.dropna(subset=["Land_Area_ha", "Forest_Area_ha"])
         if not valid_land.empty and valid_land["Land_Area_ha"].sum() > 0:
@@ -364,8 +379,12 @@ def compute_dynamic_kpis(df_panel, df_drivers, df_comm, start_year, end_year, co
     else:
         forest_share_end = np.nan
 
-    # Gross Deforestation & Expansion (latest valid year <= end_year)
-    gross_sub = scope_df[(scope_df["Year"] <= end_year) & (scope_df["Gross_Deforestation_ha"].notna())]
+    # Gross Deforestation & Expansion
+    if time_mode == "snapshot":
+        gross_sub = scope_df[(scope_df["Year"] == target_yr) & (scope_df["Gross_Deforestation_ha"].notna())]
+    else:
+        gross_sub = scope_df[(scope_df["Year"] >= y_start) & (scope_df["Year"] <= y_end) & (scope_df["Gross_Deforestation_ha"].notna())]
+
     if not gross_sub.empty:
         latest_gross_yr = int(gross_sub["Year"].max())
         gross_loss_ha = gross_sub[gross_sub["Year"] == latest_gross_yr]["Gross_Deforestation_ha"].sum()
@@ -375,8 +394,12 @@ def compute_dynamic_kpis(df_panel, df_drivers, df_comm, start_year, end_year, co
         gross_loss_ha = np.nan
         gross_gain_ha = np.nan
 
-    # CO2 Emissions (latest valid year <= end_year)
-    co2_sub = scope_df[(scope_df["Year"] <= end_year) & (scope_df["Year"] >= start_year) & (scope_df["CO2_Emissions_tonnes"].notna())]
+    # CO2 Emissions
+    if time_mode == "snapshot":
+        co2_sub = scope_df[(scope_df["Year"] == target_yr) & (scope_df["CO2_Emissions_tonnes"].notna())]
+    else:
+        co2_sub = scope_df[(scope_df["Year"] <= y_end) & (scope_df["Year"] >= y_start) & (scope_df["CO2_Emissions_tonnes"].notna())]
+
     if not co2_sub.empty:
         latest_co2_yr = int(co2_sub["Year"].max())
         co2_end_tonnes = co2_sub[co2_sub["Year"] == latest_co2_yr]["CO2_Emissions_tonnes"].sum()
@@ -384,12 +407,12 @@ def compute_dynamic_kpis(df_panel, df_drivers, df_comm, start_year, end_year, co
         latest_co2_yr = None
         co2_end_tonnes = np.nan
 
-    # Cause-specific satellite loss across overlapping years
+    # Cause-specific satellite loss
     cause_info = CAUSE_METADATA.get(selected_cause, CAUSE_METADATA["All Causes"])
     cause_df = df_drivers if cause_info["dataset"] == "drivers" else df_comm
     c_min_yr, c_max_yr = cause_info["years"]
-    eff_start = max(start_year, c_min_yr)
-    eff_end = min(end_year, c_max_yr)
+    eff_start = max(y_start, c_min_yr)
+    eff_end = min(y_end, c_max_yr)
 
     if eff_start <= eff_end:
         if iso3:
@@ -408,10 +431,11 @@ def compute_dynamic_kpis(df_panel, df_drivers, df_comm, start_year, end_year, co
         cause_share_pct = np.nan
 
     return {
+        "time_mode": time_mode,
         "scope_label": scope_label,
         "iso3": iso3,
-        "start_year": start_year,
-        "end_year": end_year,
+        "start_year": y_start,
+        "end_year": y_end,
         "area_start_ha": area_start,
         "area_end_ha": area_end,
         "net_change_period_ha": net_change_period,
