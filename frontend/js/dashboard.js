@@ -25,7 +25,7 @@ const state = {
 
 const PLOT_IDS = [
     "chart-overview-heatmap", "chart-overview-trend", "chart-overview-treemap",
-    "chart-causes-pie", "chart-causes-comm", "chart-causes-stacked", "chart-causes-sunburst", "chart-causes-all-heat",
+    "chart-causes-pie", "chart-causes-comm", "chart-causes-stacked", "chart-causes-sunburst",
     "chart-cause-spec-map", "chart-cause-spec-top", "chart-cause-spec-traj", "chart-cause-spec-share", "chart-cause-spec-heat",
     "chart-compare-radar", "chart-compare-heatmap",
     "chart-hotspots-loss", "chart-hotspots-gain"
@@ -249,7 +249,6 @@ async function loadCausesTab() {
         renderPlotly("chart-causes-comm", data.charts.commodity);
         renderPlotly("chart-causes-stacked", data.charts.stacked);
         renderPlotly("chart-causes-sunburst", data.charts.sunburst);
-        renderPlotly("chart-causes-all-heat", data.charts.heatmap);
     } else {
         allView.classList.add("hidden");
         specView.classList.remove("hidden");

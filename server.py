@@ -576,8 +576,6 @@ async def get_causes_analytics(state: FilterState):
         else:
             fig_sun = _empty_figure("Direct driver data spans 2001–2024.")
 
-        fig_heat = create_country_heatmap(DF_DRIVERS[DF_DRIVERS["Continent"].isin(continents)], "Total_Loss_ha", "All Direct Causes", year_range=(line_dy0, line_dy1), top_n=12)
-
         return {
             "mode": "all",
             "cause_label": f"{cause_meta['label']} ({snap if t_mode == 'snapshot' else f'{y0}–{y1}'})",
@@ -586,7 +584,7 @@ async def get_causes_analytics(state: FilterState):
                 "commodity": fig_to_dict(fig_comm),
                 "stacked": fig_to_dict(fig_stacked),
                 "sunburst": fig_to_dict(fig_sun),
-                "heatmap": fig_to_dict(fig_heat),
+                "heatmap": None,
                 "compare_radar": fig_to_dict(fig_comp_radar),
                 "compare_heatmap": fig_to_dict(fig_comp_heat)
             },
