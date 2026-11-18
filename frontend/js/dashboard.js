@@ -17,26 +17,18 @@ const state = {
     map_mode: "period_change",
     map_scope: "world",
     treemap_mode: "loss",
-    primary_country: "Brazil",
     compare_countries: ["Brazil", "Indonesia", "Democratic Republic of Congo", "China", "Canada"],
-    compare_metric: "Forest_Area_Mha",
-    normalize_compare: true,
-    country_secondary_view: "commodity",
     top_n: 10,
-    recovery_countries: ["China", "India", "Vietnam", "France", "Spain", "Costa Rica"],
-    regional_metric: "Forest_Area_Mha",
     activeTab: "overview",
-    staleTabs: new Set(["overview", "country", "causes", "hotspots", "regional", "data"])
+    staleTabs: new Set(["overview", "causes", "hotspots"])
 };
 
 const PLOT_IDS = [
-    "chart-overview-heatmap", "chart-overview-trend", "chart-overview-secondary", "chart-overview-treemap",
-    "chart-country-zoom", "chart-country-deep", "chart-country-cause", "chart-country-secondary",
-    "chart-compare-lines", "chart-compare-radar", "chart-compare-heatmap",
+    "chart-overview-heatmap", "chart-overview-trend", "chart-overview-treemap",
     "chart-causes-pie", "chart-causes-comm", "chart-causes-stacked", "chart-causes-sunburst", "chart-causes-all-heat",
     "chart-cause-spec-map", "chart-cause-spec-top", "chart-cause-spec-traj", "chart-cause-spec-share", "chart-cause-spec-heat",
-    "chart-hotspots-loss", "chart-hotspots-gain", "chart-hotspots-dumbbell", "chart-hotspots-scatter", "chart-hotspots-recovery",
-    "chart-regional-lines", "chart-regional-co2", "chart-regional-rli"
+    "chart-compare-radar", "chart-compare-heatmap",
+    "chart-hotspots-loss", "chart-hotspots-gain"
 ];
 
 function setLoading(isLoading) {
@@ -104,7 +96,7 @@ function updateStatusRibbon() {
 }
 
 function markAllStale() {
-    state.staleTabs = new Set(["overview", "country", "causes", "hotspots", "regional", "data"]);
+    state.staleTabs = new Set(["overview", "causes", "hotspots"]);
     updateStatusRibbon();
 }
 
@@ -123,12 +115,8 @@ function buildPayload() {
         treemap_mode: state.treemap_mode,
         primary_country: state.primary_country,
         compare_countries: state.compare_countries,
-        compare_metric: state.compare_metric,
-        normalize_compare: state.normalize_compare,
         country_secondary_view: state.country_secondary_view,
-        top_n: state.top_n,
-        recovery_countries: state.recovery_countries,
-        regional_metric: state.regional_metric
+        top_n: state.top_n
     };
 }
 
@@ -219,57 +207,32 @@ async function loadOverviewTab() {
         banner.innerHTML = `
             <div>Selected Country: <strong>${escapeHtml(countryName)} (${escapeHtml(pt.location)})</strong>${statusInfo}</div>
             <div style="display:flex; gap:8px;">
-                <button type="button" class="btn-primary" id="btn-jump-country">🔍 Open Country Analytics</button>
+                <button type="button" class="btn-primary" id="btn-jump-causes">🔍 View in Cause Analytics</button>
                 <button type="button" class="btn-secondary" id="btn-set-focus">📌 Set as Global Filter</button>
             </div>
         `;
         banner.classList.remove("hidden");
 
-        document.getElementById("btn-jump-country").onclick = () => {
-            state.primary_country = countryName;
-            document.getElementById("sel-country-primary").value = countryName;
-            switchTab("country");
+        document.getElementById("btn-jump-causes").onclick = () => {
+            state.focus_country = countryName;
+            document.getElementById("sel-focus-country").value = countryName;
+            if (!state.compare_countries.includes(countryName)) {
+                state.compare_countries = [countryName, ...state.compare_countries.slice(0, 5)];
+            }
+            markAllStale();
+            switchTab("causes");
         };
         document.getElementById("btn-set-focus").onclick = () => {
             state.focus_country = countryName;
-            state.primary_country = countryName;
             document.getElementById("sel-focus-country").value = countryName;
-            document.getElementById("sel-country-primary").value = countryName;
             markAllStale();
             loadActiveTab();
         };
     });
 
     renderPlotly("chart-overview-trend", data.charts.trend);
-    renderPlotly("chart-overview-secondary", data.charts.secondary);
     renderPlotly("chart-overview-treemap", data.charts.treemap);
     state.staleTabs.delete("overview");
-}
-
-async function loadCountryTab() {
-    const data = await fetchJson("/api/country", buildPayload());
-    const sc = data.scorecard;
-
-    const dirClass = sc.direction === "DECREASED" ? "loss" : (sc.direction === "INCREASED" ? "gain" : "");
-    const dirIcon = sc.direction === "DECREASED" ? "🔴" : (sc.direction === "INCREASED" ? "🟢" : "⚪");
-
-    document.getElementById("country-scorecard-header").innerHTML = `
-        <span class="badge-dir ${dirClass}">${dirIcon} ${escapeHtml(sc.direction)}</span>
-        <span class="badge-info">${escapeHtml(sc.continent)} • ${escapeHtml(sc.sub_region)}</span>
-        <span class="badge-info">Primary Cause: ${escapeHtml(sc.dominant_driver)}</span>
-        <span class="badge-info">Top Commodity: ${escapeHtml(sc.dominant_commodity)}</span>
-    `;
-
-    renderKPIs("country-kpis", sc.metrics);
-    renderPlotly("chart-country-zoom", data.charts.zoom_map);
-    renderPlotly("chart-country-deep", data.charts.deep_dive);
-    renderPlotly("chart-country-cause", data.charts.cause_timeline);
-    renderPlotly("chart-country-secondary", data.charts.secondary);
-    renderPlotly("chart-compare-lines", data.charts.compare_lines);
-    renderPlotly("chart-compare-radar", data.charts.compare_radar);
-    renderPlotly("chart-compare-heatmap", data.charts.compare_heatmap);
-    renderCompareChips();
-    state.staleTabs.delete("country");
 }
 
 async function loadCausesTab() {
@@ -305,6 +268,16 @@ async function loadCausesTab() {
             { key: "Share_of_Country_Loss", label: "% of Country Total Loss", fmt: (v) => `${Number(v).toFixed(1)}%` }
         ], data.table);
     }
+
+    // Side-by-side comparison charts
+    if (data.charts && data.charts.compare_radar) {
+        renderPlotly("chart-compare-radar", data.charts.compare_radar);
+    }
+    if (data.charts && data.charts.compare_heatmap) {
+        renderPlotly("chart-compare-heatmap", data.charts.compare_heatmap);
+    }
+    renderCompareChips();
+
     state.staleTabs.delete("causes");
 }
 
@@ -312,106 +285,14 @@ async function loadHotspotsTab() {
     const data = await fetchJson("/api/hotspots", buildPayload());
     renderPlotly("chart-hotspots-loss", data.charts.top_loss);
     renderPlotly("chart-hotspots-gain", data.charts.top_gain);
-    renderPlotly("chart-hotspots-dumbbell", data.charts.dumbbell);
-    renderPlotly("chart-hotspots-scatter", data.charts.scatter);
-    renderPlotly("chart-hotspots-recovery", data.charts.recovery);
-
-    const isSnap = data.time_mode === "snapshot";
-    const yrLabel = data.year_label || String(state.snapshot_year);
-    const hotspotCols = isSnap ? [
-        { key: "ISO3", label: "ISO3" },
-        { key: "Entity", label: "Country" },
-        { key: "Continent", label: "Continent" },
-        { key: "Area_End_Mha", label: `Area ${yrLabel} (Mha)`, fmt: (v) => `${Number(v).toFixed(2)}` },
-        {
-            key: "Net_Change_Mha",
-            label: `Annual Change ${yrLabel} (Mha/yr)`,
-            fmt: (v) => `${Number(v) >= 0 ? "+" : ""}${Number(v).toFixed(3)} Mha/yr`,
-            classFn: (v) => (v < 0 ? "cell-loss" : "cell-gain")
-        },
-        { key: "Pct_Change", label: "Annual % Change", fmt: (v) => `${Number(v) >= 0 ? "+" : ""}${Number(v).toFixed(2)}%` },
-        { key: "Dominant_Driver", label: "Primary Cause" }
-    ] : [
-        { key: "ISO3", label: "ISO3" },
-        { key: "Entity", label: "Country" },
-        { key: "Continent", label: "Continent" },
-        { key: "Area_Start_Mha", label: `Area ${state.start_year} (Mha)`, fmt: (v) => `${Number(v).toFixed(2)}` },
-        { key: "Area_End_Mha", label: `Area ${state.end_year} (Mha)`, fmt: (v) => `${Number(v).toFixed(2)}` },
-        {
-            key: "Net_Change_Mha",
-            label: "Net Change (Mha)",
-            fmt: (v) => `${Number(v) >= 0 ? "+" : ""}${Number(v).toFixed(2)} Mha`,
-            classFn: (v) => (v < 0 ? "cell-loss" : "cell-gain")
-        },
-        { key: "Pct_Change", label: "% Change", fmt: (v) => `${Number(v) >= 0 ? "+" : ""}${Number(v).toFixed(1)}%` },
-        { key: "Dominant_Driver", label: "Primary Cause" }
-    ];
-    renderDataTable("hotspots-table-wrap", hotspotCols, data.table);
     state.staleTabs.delete("hotspots");
-}
-
-async function loadRegionalTab() {
-    const data = await fetchJson("/api/regional", buildPayload());
-    renderPlotly("chart-regional-lines", data.charts.regional_lines);
-    renderPlotly("chart-regional-co2", data.charts.co2);
-    renderPlotly("chart-regional-rli", data.charts.rli);
-
-    const regTitle = document.getElementById("regional-table-title");
-    if (regTitle) {
-        regTitle.textContent = `Regional Breakdown (${data.year_label || state.snapshot_year} Snapshot)`;
-    }
-
-    renderDataTable("regional-table-wrap", [
-        { key: "Continent", label: "Continent" },
-        { key: "Forest_Area_Mha", label: "Forest Area (Mha)", fmt: (v) => Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 }) },
-        {
-            key: "Annual_Change_Mha",
-            label: "Annual Change (Mha/yr)",
-            fmt: (v) => `${Number(v) >= 0 ? "+" : ""}${Number(v).toFixed(3)}`,
-            classFn: (v) => (v < 0 ? "cell-loss" : "cell-gain")
-        },
-        {
-            key: "Direction",
-            label: "Status",
-            fmt: (v) => v === "DECREASED" ? "🔴 DECREASED" : (v === "INCREASED" ? "🟢 INCREASED" : "⚪ STABLE"),
-            classFn: (v) => (v === "DECREASED" ? "cell-loss" : (v === "INCREASED" ? "cell-gain" : ""))
-        },
-        { key: "Forest_Share_pct", label: "Forest Share (%)", fmt: (v) => `${Number(v).toFixed(1)}%` },
-        { key: "CO2_Emissions_Mt", label: "Land-Use CO₂ (Mt)", fmt: (v) => Number(v).toLocaleString(undefined, { maximumFractionDigits: 1 }) }
-    ], data.table);
-    state.staleTabs.delete("regional");
-}
-
-async function loadDataExplorerTab() {
-    const dataset = document.getElementById("sel-dataset").value;
-    const q = document.getElementById("inp-data-search").value.trim();
-    const contStr = encodeURIComponent(state.continents.join(","));
-    const qStr = encodeURIComponent(q);
-
-    const timeParams = `time_mode=${state.time_mode}&start_year=${state.start_year}&end_year=${state.end_year}&snapshot_year=${state.snapshot_year}`;
-    const url = `/api/data?dataset=${dataset}&q=${qStr}&${timeParams}&continents=${contStr}`;
-    const dlUrl = `/api/download/${dataset}?q=${qStr}&${timeParams}&continents=${contStr}`;
-    document.getElementById("btn-download-csv").href = dlUrl;
-
-    const data = await fetchJson(url);
-    document.getElementById("data-count-label").textContent = `Showing ${data.rows.length.toLocaleString()} of ${data.total_rows.toLocaleString()} verified records.`;
-    const cols = data.columns.map((c) => ({
-        key: c,
-        label: c,
-        fmt: (v) => (typeof v === "number" ? Number(v).toLocaleString(undefined, { maximumFractionDigits: 3 }) : escapeHtml(String(v)))
-    }));
-    renderDataTable("explorer-table-wrap", cols, data.rows);
-    state.staleTabs.delete("data");
 }
 
 async function loadActiveTab() {
     updateStatusRibbon();
     if (state.activeTab === "overview") return loadOverviewTab();
-    if (state.activeTab === "country") return loadCountryTab();
     if (state.activeTab === "causes") return loadCausesTab();
     if (state.activeTab === "hotspots") return loadHotspotsTab();
-    if (state.activeTab === "regional") return loadRegionalTab();
-    if (state.activeTab === "data") return loadDataExplorerTab();
 }
 
 function switchTab(tabName) {
@@ -459,27 +340,25 @@ function populateContinentPills() {
 function populateCountryDropdowns() {
     const filtered = state.allCountries.filter((c) => state.continents.includes(c.Continent));
     const focusSel = document.getElementById("sel-focus-country");
-    const primSel = document.getElementById("sel-country-primary");
     const addCompSel = document.getElementById("sel-add-compare");
 
-    focusSel.innerHTML = `<option value="All Countries">All Countries (Aggregate)</option>` +
-        filtered.map((c) => `<option value="${escapeHtml(c.Entity)}">${escapeHtml(c.Entity)} (${c.ISO3})</option>`).join("");
-    if (!filtered.some((c) => c.Entity === state.focus_country)) {
-        state.focus_country = "All Countries";
+    if (focusSel) {
+        focusSel.innerHTML = `<option value="All Countries">All Countries (Aggregate)</option>` +
+            filtered.map((c) => `<option value="${escapeHtml(c.Entity)}">${escapeHtml(c.Entity)} (${c.ISO3})</option>`).join("");
+        if (!filtered.some((c) => c.Entity === state.focus_country)) {
+            state.focus_country = "All Countries";
+        }
+        focusSel.value = state.focus_country;
     }
-    focusSel.value = state.focus_country;
 
-    primSel.innerHTML = filtered.map((c) => `<option value="${escapeHtml(c.Entity)}">${escapeHtml(c.Entity)} (${c.ISO3})</option>`).join("");
-    if (!filtered.some((c) => c.Entity === state.primary_country) && filtered.length > 0) {
-        state.primary_country = filtered[0].Entity;
+    if (addCompSel) {
+        addCompSel.innerHTML = state.allCountries.map((c) => `<option value="${escapeHtml(c.Entity)}">${escapeHtml(c.Entity)}</option>`).join("");
     }
-    primSel.value = state.primary_country;
-
-    addCompSel.innerHTML = state.allCountries.map((c) => `<option value="${escapeHtml(c.Entity)}">${escapeHtml(c.Entity)}</option>`).join("");
 }
 
 function renderCompareChips() {
     const wrap = document.getElementById("compare-chips");
+    if (!wrap) return;
     wrap.innerHTML = state.compare_countries.map((c) => `
         <span class="country-chip">
             ${escapeHtml(c)}
@@ -492,7 +371,7 @@ function renderCompareChips() {
             if (state.compare_countries.length <= 1) return;
             state.compare_countries = state.compare_countries.filter((x) => x !== btn.dataset.remove);
             markAllStale();
-            loadCountryTab();
+            loadCausesTab();
         });
     });
 }
@@ -562,22 +441,8 @@ async function initDashboard() {
 
     document.getElementById("sel-focus-country").addEventListener("change", (e) => {
         state.focus_country = e.target.value;
-        if (state.focus_country !== "All Countries") {
-            state.primary_country = state.focus_country;
-            document.getElementById("sel-country-primary").value = state.focus_country;
-        }
         markAllStale();
         loadActiveTab();
-    });
-
-    document.getElementById("sel-country-primary").addEventListener("change", (e) => {
-        state.primary_country = e.target.value;
-        if (state.focus_country !== "All Countries") {
-            state.focus_country = state.primary_country;
-            document.getElementById("sel-focus-country").value = state.primary_country;
-        }
-        markAllStale();
-        loadCountryTab();
     });
 
     const groupRange = document.getElementById("group-year-range");
@@ -726,49 +591,23 @@ async function initDashboard() {
         });
     });
 
-    document.querySelectorAll("#country-sec-btns .seg-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-            document.querySelectorAll("#country-sec-btns .seg-btn").forEach((b) => b.classList.remove("active"));
-            btn.classList.add("active");
-            state.country_secondary_view = btn.dataset.val;
-            loadCountryTab();
+    const btnAddComp = document.getElementById("btn-add-compare");
+    if (btnAddComp) {
+        btnAddComp.addEventListener("click", () => {
+            const addSel = document.getElementById("sel-add-compare");
+            const val = addSel ? addSel.value : null;
+            if (val && !state.compare_countries.includes(val) && state.compare_countries.length < 6) {
+                state.compare_countries.push(val);
+                loadCausesTab();
+            }
         });
-    });
-
-    document.getElementById("sel-compare-metric").addEventListener("change", (e) => {
-        state.compare_metric = e.target.value;
-        document.getElementById("chk-normalize-compare").disabled = (state.compare_metric !== "Forest_Area_Mha");
-        loadCountryTab();
-    });
-    document.getElementById("chk-normalize-compare").addEventListener("change", (e) => {
-        state.normalize_compare = e.target.checked;
-        loadCountryTab();
-    });
-    document.getElementById("btn-add-compare").addEventListener("click", () => {
-        const val = document.getElementById("sel-add-compare").value;
-        if (val && !state.compare_countries.includes(val) && state.compare_countries.length < 6) {
-            state.compare_countries.push(val);
-            loadCountryTab();
-        }
-    });
+    }
 
     document.getElementById("rng-top-n").addEventListener("input", (e) => {
         state.top_n = Number(e.target.value);
         document.getElementById("lbl-top-n").textContent = String(state.top_n);
     });
     document.getElementById("rng-top-n").addEventListener("change", () => loadHotspotsTab());
-
-    document.getElementById("sel-regional-metric").addEventListener("change", (e) => {
-        state.regional_metric = e.target.value;
-        loadRegionalTab();
-    });
-
-    let searchTimer = null;
-    document.getElementById("sel-dataset").addEventListener("change", () => loadDataExplorerTab());
-    document.getElementById("inp-data-search").addEventListener("input", () => {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => loadDataExplorerTab(), 250);
-    });
 
     document.getElementById("btn-reset-filters").addEventListener("click", () => {
         state.continents = [...state.allContinents];

@@ -635,6 +635,16 @@ html, body {
     height: 510px;
 }
 
+.chart-box.hero-heatmap {
+    height: 680px;
+    width: 100%;
+}
+
+.chart-box.wide-heatmap {
+    height: 520px;
+    width: 100%;
+}
+
 /* MAP CLICK INTERACTION BANNER */
 .map-click-banner {
     margin-top: 0.65rem;

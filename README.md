@@ -4,6 +4,8 @@ A professional, interactive, and research-grade scientific intelligence dashboar
 
 Built with **Python 3.11**, **FastAPI**, **Uvicorn**, **HTML5/CSS3/JavaScript**, **Pandas**, **NumPy**, **Plotly**, **GeoPandas**, and **Jupyter Notebooks (.ipynb)**.
 
+> 📖 **Comprehensive System Documentation:** For full details on the tech stack, software architecture, internal filtering pipeline and sequence workflow, file directory, row counts, schema, and variable definitions, consult [SYSTEM_DOCUMENTATION.md](file:///d:/DVLAB/SYSTEM_DOCUMENTATION.md).
+
 ---
 
 ## 🌟 Executive Summary & Key Empirical Findings
@@ -133,30 +135,24 @@ pytest tests/test_dashboard.py -v
 
 ## 🖥️ Web Dashboard Feature Tour
 
-The custom HTML/CSS/JavaScript dashboard features a collapsible left filter menu (with one-click Full Screen expansion), crisp dark-on-light typography, and 6 interactive views:
+The custom HTML/CSS/JavaScript dashboard features a collapsible left filter menu (with one-click Full Screen expansion), crisp dark-on-light typography, and 4 streamlined interactive views:
 
 1. **🌐 Overview & Global Heatmap:**
-   - 5 reactive KPI cards calculated dynamically for any country, continent selection, year range, and active deforestation cause.
-   - Full-width **Global Forest Change Heatmap** with explicit **`🔴 DECREASED` / `🟢 INCREASED`** hover tooltips and click-to-inspect country jumping.
+   - 3 core executive KPI cards: **Forest Area**, **Net Forest Change** (with reactive `🔴 DECREASED` / `🟢 INCREASED` badges), and **Forest Cover Share (%)**.
+   - Full-width **Global Forest Change Heatmap** (`.hero-heatmap`, 680px) with official Survey of India boundary integration (`data/raw/india_soi_boundary.geojson`) covering full Jammu & Kashmir and Ladakh up to 37.098°N, explicit **`🔴 DECREASED` / `🟢 INCREASED`** hover tooltips, and click-to-inspect country jumping.
    - Global/scoped forest area trajectory (`1990–2025`), cause top countries / gross gain-vs-loss balance, and hierarchical **Continent → Country Treemap**.
 
 2. **🏳️ Country-Wise Analytics:**
-   - Country scorecard with direction badge (`DECREASED` / `INCREASED`), dominant physical driver, and top commodity driver.
-   - GeoPandas spatial focus map + dual-axis trajectory + cause-specific country timeline + commodity/gross toggle.
-   - Multi-Country Comparison (up to 6 countries, normalized `Start = 100` or absolute), Driver Fingerprint Radar Chart, and Annual Intensity Heatmap.
+   - Country scorecard with direction badge (`DECREASED` / `INCREASED`), dominant physical driver, top commodity driver, total forest area, and net change.
+   - Full-width single-line **Annual Forest Change Trajectory** (`1990–2025`): Year on the X-axis, with **+Y axis** indicating **Increase in Forest Area** (Gain) and **-Y axis** indicating **Decrease in Forest Area** (Loss / Deforestation), centered on a zero baseline ($y = 0$). Cause-specific country timeline and Commodity Footprint vs. Gross Loss/Gain breakdown view.
+   - Multi-Country Side-by-Side Comparison: Driver Fingerprint Radar Chart and expanded full-width Annual Loss Intensity Spikes Heatmap (`.wide-heatmap`, 520px) comparing up to 6 selected countries.
 
 3. **🔍 Cause Analytics (Dynamic Graph Switching):**
-   - When **`All Causes`** is selected: Direct Drivers Donut, Commodity Attribution Bar, Stacked Longitudinal Drivers (`2001–2024`), Continental × Driver Sunburst, and Country Intensity Heatmap.
-   - When a **Specific Cause** is selected (*Wildfire*, *Permanent Agriculture*, *Logging*, *Shifting Cultivation*, *Mining*, *Urban*, *Beef*, *Palm Oil*, *Soy*, etc.): Dynamically renders a Cause-Specific Global Map, Top 12 Countries Driven by That Cause, Continental Trajectory Area Chart, Share of National Loss Bar, Spike Heatmap, and Top 25 Country Ranking Table.
+   - When **`All Causes`** is selected: Direct Drivers Donut, Commodity Attribution Bar, Stacked Longitudinal Drivers (`2001–2024`), Continental × Driver Sunburst, and expanded full-width Country Intensity Heatmap (`.wide-heatmap`, 520px).
+   - When a **Specific Cause** is selected (*Wildfire*, *Permanent Agriculture*, *Logging*, *Shifting Cultivation*, *Mining*, *Urban*, *Cattle*, *Palm Oil*, *Soy*, etc.): Dynamically renders a Cause-Specific Global Map with official Survey of India boundary, Top 12 Countries Driven by That Cause, Continental Trajectory Area Chart, Share of National Loss Bar, expanded Spike Heatmap (`.wide-heatmap`), and Top 25 Country Ranking Table.
 
 4. **🔥 Hotspots & Recovery:**
-   - Dynamic Top N loss & expansion country rankings, **1990 vs. 2025 Dumbbell Slope Chart**, Forest Change vs. Land-Use CO₂ Bubble Scatter Plot, and Forest Transition Recovery Curves.
-
-5. **🌍 Regional & Impact:**
-   - 6-Continent comparative trends with area-weighted forest share %, Land-Use CO₂ trajectories, and IUCN Red List Index biodiversity curves.
-
-6. **📊 Data Explorer:**
-   - Live search, filter, and one-click CSV download across all 6 core datasets.
+   - Dynamic Top N loss & expansion country rankings (`chart-hotspots-loss` and `chart-hotspots-gain`) with user-configurable Top N slider (5–25).
 
 ---
 

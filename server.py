@@ -26,7 +26,6 @@ if BASE_DIR not in sys.path:
 
 from src.utils import (
     load_processed_data,
-    load_world_geodata,
     compute_dynamic_kpis,
     format_area_value,
     CAUSE_METADATA,
@@ -42,7 +41,6 @@ from src.charts import (
     create_global_forest_heatmap,
     create_world_choropleth,
     create_cause_world_choropleth,
-    create_geopandas_country_zoom_map,
     create_global_trend_chart,
     create_gain_vs_loss_chart,
     create_drivers_pie_chart,
@@ -53,9 +51,7 @@ from src.charts import (
     create_cause_share_comparison,
     create_top_countries_bar,
     create_top_countries_annual_bar,
-    create_regional_comparison_chart,
     create_country_deep_dive_chart,
-    create_country_comparison_lines,
     create_country_cause_radar,
     create_country_heatmap,
     create_forest_vs_emissions_scatter,
@@ -84,11 +80,9 @@ if os.path.exists(FRONTEND_DIR):
 
 # Load verified datasets into memory on startup
 DATA = load_processed_data()
-GDF_WORLD = load_world_geodata()
 
 DF_PANEL = DATA["country_panel"]
 DF_GLOBAL = DATA["global_summary"]
-DF_REG = DATA["regional"]
 DF_DRIVERS = DATA["drivers"]
 DF_COMM = DATA["commodities"]
 DF_HOTSPOTS = DATA["hotspots"]
@@ -276,26 +270,6 @@ async def get_overview(state: FilterState):
         else ("INCREASED" if (pd.notna(net_ha) and net_ha > (100 if t_mode == "snapshot" else 500)) else ("Data Not Available" if pd.isna(net_ha) else "STABLE"))
     )
 
-    if pd.notna(kpis["gross_loss_ha"]):
-        gross_val = format_area_value(-abs(kpis["gross_loss_ha"]), state.unit, signed=True)
-        gross_sub = f"Recovery: {format_area_value(abs(kpis['gross_gain_ha']), state.unit, signed=True)}/yr ({kpis['gross_reported_year']})"
-        gross_label = f"Gross Deforestation ({kpis['gross_reported_year']})"
-        gross_tone = "loss"
-    elif t_mode == "snapshot":
-        if pd.notna(kpis["co2_end_tonnes"]):
-            gross_val = f"{kpis['co2_end_tonnes']/1e6:,.1f} Mt CO₂"
-            gross_sub = f"Land-Use Emissions ({snap})"
-        else:
-            gross_val = "Data Not Available"
-            gross_sub = f"Gross & CO₂ unreported for {snap}"
-        gross_label = f"Land-Use CO₂ ({snap})"
-        gross_tone = "cause"
-    else:
-        gross_val = format_area_value(kpis["annual_rate_end_ha"], state.unit, signed=True)
-        gross_sub = f"Annual Net Rate ({y1})"
-        gross_label = "Annual Net Rate"
-        gross_tone = "loss" if (pd.notna(kpis["annual_rate_end_ha"]) and kpis["annual_rate_end_ha"] < 0) else "gain"
-
     change_label = f"Annual Net Change ({snap})" if t_mode == "snapshot" else f"Net Change ({y0}–{y1})"
     change_suffix = "/yr" if t_mode == "snapshot" else ""
     pct_txt = f"{kpis['pct_change_period']:+.2f}%{change_suffix}" if pd.notna(kpis["pct_change_period"]) else ("Annual rate starts 1991" if (t_mode == "snapshot" and snap == 1990) else "N/A")
@@ -318,12 +292,6 @@ async def get_overview(state: FilterState):
             "value": f"{kpis['forest_share_end_pct']:.1f}%" if pd.notna(kpis["forest_share_end_pct"]) else "Data Not Available",
             "subtext": "Share of total land area",
             "tone": "neutral"
-        },
-        {
-            "label": gross_label,
-            "value": gross_val,
-            "subtext": gross_sub,
-            "tone": gross_tone
         }
     ]
 
@@ -366,7 +334,9 @@ async def get_overview(state: FilterState):
 
     # 2. Trajectory Chart
     if state.focus_country != "All Countries" and hi_iso:
-        fig_trend = create_country_deep_dive_chart(DF_PANEL, iso3=hi_iso, start_year=line_y0, end_year=line_y1, snapshot_marker=snap_marker)
+        fig_trend = create_country_deep_dive_chart(
+            DF_PANEL, iso3=hi_iso, start_year=line_y0, end_year=line_y1, snapshot_marker=snap_marker, df_drivers=DF_DRIVERS, unit_choice=state.unit
+        )
     else:
         agg_df = filtered_panel.groupby("Year").agg({
             "Forest_Area_ha": "sum",
@@ -377,33 +347,7 @@ async def get_overview(state: FilterState):
         agg_df["Annual_Change_Mha"] = agg_df["Annual_Change_ha"] / 1_000_000.0
         fig_trend = create_global_trend_chart(agg_df, start_year=line_y0, end_year=line_y1, title_prefix=scope_badge, snapshot_marker=snap_marker)
 
-    # 3. Secondary Right Chart (Reacts immediately to Cause & Time Mode!)
-    if state.cause != "All Causes":
-        c_df = DF_DRIVERS if cause_meta["dataset"] == "drivers" else DF_COMM
-        cy0, cy1 = max(y0, cause_meta["years"][0]), min(y1, cause_meta["years"][1])
-        c_scoped = c_df[c_df["Entity"] == state.focus_country] if state.focus_country != "All Countries" else c_df[c_df["Continent"].isin(continents)]
-        if cy0 <= cy1:
-            fig_secondary = create_cause_top_countries_bar(
-                c_scoped, cause_meta["column"], cause_meta["label"],
-                year_range=(cy0, cy1), top_n=10, cause_color=cause_meta["color"]
-            )
-        else:
-            fig_secondary = _empty_figure(f"Cause data available {cause_meta['years'][0]}–{cause_meta['years'][1]}")
-    else:
-        if state.focus_country != "All Countries" and hi_iso:
-            cy0, cy1 = max(y0, 2001), min(y1, 2024)
-            if cy0 <= cy1:
-                fig_secondary = create_drivers_pie_chart(DF_DRIVERS, entity=state.focus_country, year_range=(cy0, cy1))
-            else:
-                fig_secondary = _empty_figure("Direct driver satellite data starts in 2001.")
-        elif t_mode == "snapshot":
-            fig_secondary = create_top_countries_annual_bar(filtered_panel, year=snap, top_n=10, ascending=True, df_hotspots=DF_HOTSPOTS)
-        elif len(continents) == 6:
-            fig_secondary = create_gain_vs_loss_chart(DF_GLOBAL, entity_label="Global")
-        else:
-            fig_secondary = create_top_countries_bar(period_hotspots, top_n=10, ascending=True)
-
-    # 4. Hierarchical Treemap
+    # 3. Hierarchical Treemap
     tr_mode = state.treemap_mode if state.treemap_mode in ["loss", "gain", "stock"] else "loss"
     if t_mode == "snapshot" and snap == 1990 and tr_mode in ["loss", "gain"]:
         fig_treemap = _empty_figure("Annual change treemap starts in 1991. Switch to Forest Stock or select 1991–2025.")
@@ -415,7 +359,7 @@ async def get_overview(state: FilterState):
         "charts": {
             "heatmap": fig_to_dict(fig_heatmap),
             "trend": fig_to_dict(fig_trend),
-            "secondary": fig_to_dict(fig_secondary),
+            "secondary": None,
             "treemap": fig_to_dict(fig_treemap)
         }
     }
@@ -482,15 +426,13 @@ async def get_country_analytics(state: FilterState):
                 "value": (format_area_value(net_ha, state.unit, signed=True) + c_sfx) if pd.notna(net_ha) else "Data Not Available",
                 "subtext": f"{direction} • {c_pct_str}",
                 "tone": "loss" if direction == "DECREASED" else ("gain" if direction == "INCREASED" else "neutral")
-            },
-            {"label": f"Land Cover Share ({snap if t_mode == 'snapshot' else y1})", "value": f"{c_kpis['forest_share_end_pct']:.1f}%" if pd.notna(c_kpis["forest_share_end_pct"]) else "Data Not Available", "tone": "neutral"},
-            {"label": f"Land-Use CO₂ ({c_kpis['co2_reported_year'] or snap})", "value": f"{c_kpis['co2_end_tonnes']/1e6:,.1f} Mt CO₂" if pd.notna(c_kpis["co2_end_tonnes"]) else "Data Not Available", "tone": "cause"},
-            {"label": f"IUCN Red List Index ({snap if t_mode == 'snapshot' else y1})", "value": f"{rli_str} {rli_delta}".strip(), "tone": "neutral"}
+            }
         ]
     }
 
-    fig_zoom = create_geopandas_country_zoom_map(GDF_WORLD, DF_PANEL, iso3=c_iso, year=snap)
-    fig_deep = create_country_deep_dive_chart(DF_PANEL, iso3=c_iso, start_year=line_y0, end_year=line_y1, snapshot_marker=snap_marker)
+    fig_deep = create_country_deep_dive_chart(
+        DF_PANEL, iso3=c_iso, start_year=line_y0, end_year=line_y1, snapshot_marker=snap_marker, df_drivers=DF_DRIVERS, unit_choice=state.unit
+    )
 
     cause_meta = CAUSE_METADATA.get(state.cause, CAUSE_METADATA["All Causes"])
     if state.cause == "All Causes":
@@ -541,7 +483,6 @@ async def get_country_analytics(state: FilterState):
 
     comp_list = state.compare_countries or [target_country]
     comp_isos = DF_PANEL[DF_PANEL["Entity"].isin(comp_list)]["ISO3"].unique().tolist()
-    fig_comp_lines = create_country_comparison_lines(DF_PANEL, comp_isos, metric=state.compare_metric, normalize=state.normalize_compare, start_year=line_y0, end_year=line_y1, snapshot_marker=snap_marker)
 
     rad_y0, rad_y1 = max(y0, 2001), min(y1, 2024)
     if rad_y0 <= rad_y1:
@@ -559,11 +500,9 @@ async def get_country_analytics(state: FilterState):
     return {
         "scorecard": scorecard,
         "charts": {
-            "zoom_map": fig_to_dict(fig_zoom),
             "deep_dive": fig_to_dict(fig_deep),
             "cause_timeline": fig_to_dict(fig_c_cause),
             "secondary": fig_to_dict(fig_c_sec),
-            "compare_lines": fig_to_dict(fig_comp_lines),
             "compare_radar": fig_to_dict(fig_comp_radar),
             "compare_heatmap": fig_to_dict(fig_comp_heat)
         }
@@ -575,6 +514,22 @@ async def get_causes_analytics(state: FilterState):
     continents = state.continents or ALL_CONTINENTS
     t_mode, y0, y1, snap, line_y0, line_y1, snap_marker = _resolve_time_window(state)
     cause_meta = CAUSE_METADATA.get(state.cause, CAUSE_METADATA["All Causes"])
+
+    comp_list = state.compare_countries or ["Brazil", "Indonesia", "Democratic Republic of Congo", "China", "Canada"]
+    comp_isos = DF_PANEL[DF_PANEL["Entity"].isin(comp_list)]["ISO3"].unique().tolist()
+
+    rad_y0, rad_y1 = max(y0, 2001), min(y1, 2024)
+    if rad_y0 <= rad_y1 and comp_isos:
+        fig_comp_radar = create_country_cause_radar(DF_DRIVERS, comp_isos, year_range=(rad_y0, rad_y1))
+    else:
+        fig_comp_radar = _empty_figure(f"Driver radar data spans 2001–2024 (selected {snap}).")
+
+    hm_src = DF_DRIVERS if cause_meta["dataset"] == "drivers" else DF_COMM
+    hy0, hy1 = max(line_y0, cause_meta["years"][0]), min(line_y1, cause_meta["years"][1])
+    if hy0 <= hy1 and comp_isos:
+        fig_comp_heat = create_country_heatmap(hm_src, cause_meta["column"], cause_meta["label"], iso3_list=comp_isos, year_range=(hy0, hy1), top_n=len(comp_isos))
+    else:
+        fig_comp_heat = _empty_figure("Heatmap unavailable for selected years/countries.")
 
     if state.cause == "All Causes":
         dy0, dy1 = max(y0, 2001), min(y1, 2024)
@@ -631,7 +586,9 @@ async def get_causes_analytics(state: FilterState):
                 "commodity": fig_to_dict(fig_comm),
                 "stacked": fig_to_dict(fig_stacked),
                 "sunburst": fig_to_dict(fig_sun),
-                "heatmap": fig_to_dict(fig_heat)
+                "heatmap": fig_to_dict(fig_heat),
+                "compare_radar": fig_to_dict(fig_comp_radar),
+                "compare_heatmap": fig_to_dict(fig_comp_heat)
             },
             "table": []
         }
@@ -646,7 +603,16 @@ async def get_causes_analytics(state: FilterState):
 
     if cy0 > cy1:
         empty = fig_to_dict(_empty_figure(f"{c_label} data is available for {cause_meta['years'][0]}–{cause_meta['years'][1]} (selected {snap if t_mode == 'snapshot' else f'{y0}–{y1}'})."))
-        return {"mode": "specific", "cause_label": c_label, "charts": {"map": empty, "top": empty, "trajectory": empty, "share": empty, "heatmap": empty}, "table": []}
+        return {
+            "mode": "specific",
+            "cause_label": c_label,
+            "charts": {
+                "map": empty, "top": empty, "trajectory": empty, "share": empty, "heatmap": empty,
+                "compare_radar": fig_to_dict(fig_comp_radar),
+                "compare_heatmap": fig_to_dict(fig_comp_heat)
+            },
+            "table": []
+        }
 
     c_filtered = c_df[c_df["Continent"].isin(continents)].copy()
     hi_df = DF_PANEL[DF_PANEL["Entity"] == state.focus_country] if state.focus_country != "All Countries" else pd.DataFrame()
@@ -676,7 +642,9 @@ async def get_causes_analytics(state: FilterState):
             "top": fig_to_dict(fig_top),
             "trajectory": fig_to_dict(fig_traj),
             "share": fig_to_dict(fig_share),
-            "heatmap": fig_to_dict(fig_heat)
+            "heatmap": fig_to_dict(fig_heat),
+            "compare_radar": fig_to_dict(fig_comp_radar),
+            "compare_heatmap": fig_to_dict(fig_comp_heat)
         },
         "table": c_tbl[["Code", "Entity", "Continent", "Cause_Mha", "Share_of_Global_Cause", "Share_of_Country_Loss"]].to_dict(orient="records")
     }
@@ -692,198 +660,17 @@ async def get_hotspots_analytics(state: FilterState):
     if t_mode == "snapshot":
         fig_loss = create_top_countries_annual_bar(filtered_panel, year=snap, top_n=state.top_n, ascending=True, df_hotspots=DF_HOTSPOTS)
         fig_gain = create_top_countries_annual_bar(filtered_panel, year=snap, top_n=state.top_n, ascending=False, df_hotspots=DF_HOTSPOTS)
-        if snap > 1990:
-            dumb_df = compute_period_hotspots_df(1990, snap, continents)
-            fig_dumb = create_slope_dumbbell_chart(dumb_df, top_n=state.top_n, start_label=1990, end_label=snap)
-        else:
-            fig_dumb = _empty_figure("Select a snapshot year after 1990 to compare 1990 vs. Snapshot Forest Area.")
-
-        scatter_yr = min(snap, 2024)
-        fig_scatter = create_forest_vs_emissions_scatter(filtered_panel, year=scatter_yr)
-
-        sub_snap = filtered_panel[filtered_panel["Year"] == snap].dropna(subset=["Annual_Change_Mha"]).merge(
-            DF_HOTSPOTS[["ISO3", "Dominant_Driver"]], on="ISO3", how="left"
-        )
-        sub_snap["Dominant_Driver"] = sub_snap["Dominant_Driver"].fillna("Data Not Available")
-        tbl_rows = sub_snap[sub_snap["Annual_Change_Mha"] < 0].sort_values("Annual_Change_Mha").head(state.top_n).copy()
-        table_data = []
-        for _, r in tbl_rows.iterrows():
-            pct_yr = (r["Annual_Change_ha"] / r["Forest_Area_ha"] * 100.0) if (pd.notna(r["Forest_Area_ha"]) and r["Forest_Area_ha"] > 0) else 0.0
-            table_data.append({
-                "ISO3": r["ISO3"],
-                "Entity": r["Entity"],
-                "Continent": r["Continent"],
-                "Area_Start_Mha": round(r["Forest_Area_Mha"], 2),
-                "Area_End_Mha": round(r["Forest_Area_Mha"], 2),
-                "Net_Change_Mha": round(r["Annual_Change_Mha"], 3),
-                "Pct_Change": round(pct_yr, 2),
-                "Dominant_Driver": r["Dominant_Driver"]
-            })
     else:
         period_hotspots = compute_period_hotspots_df(y0, y1, continents)
         fig_loss = create_top_countries_bar(period_hotspots, top_n=state.top_n, ascending=True)
         fig_gain = create_top_countries_bar(period_hotspots, top_n=state.top_n, ascending=False)
-        fig_dumb = create_slope_dumbbell_chart(period_hotspots, top_n=state.top_n, start_label=y0, end_label=y1)
-        fig_scatter = create_forest_vs_emissions_scatter(filtered_panel, year=min(y1, 2024))
-
-        tbl = period_hotspots[period_hotspots["Net_Change_1990_to_Latest_Mha"] < 0].head(state.top_n).copy()
-        tbl["Area_Start_Mha"] = (tbl["Area_Start_ha"] / 1e6).round(2)
-        tbl["Area_End_Mha"] = (tbl["Area_End_ha"] / 1e6).round(2)
-        tbl["Net_Change_Mha"] = tbl["Net_Change_1990_to_Latest_Mha"].round(2)
-        tbl["Pct_Change"] = tbl["Pct_Change_Since_1990"].round(1)
-        table_data = tbl[["ISO3", "Entity", "Continent", "Area_Start_Mha", "Area_End_Mha", "Net_Change_Mha", "Pct_Change", "Dominant_Driver"]].to_dict(orient="records")
-
-    rec_isos = DF_PANEL[DF_PANEL["Entity"].isin(state.recovery_countries)]["ISO3"].unique().tolist()
-    fig_rec = create_country_comparison_lines(DF_PANEL, rec_isos, metric="Forest_Area_Mha", normalize=True, start_year=line_y0, end_year=line_y1, snapshot_marker=snap_marker)
 
     return {
         "time_mode": t_mode,
         "year_label": f"{snap}" if t_mode == "snapshot" else f"{y0}–{y1}",
         "charts": {
             "top_loss": fig_to_dict(fig_loss),
-            "top_gain": fig_to_dict(fig_gain),
-            "dumbbell": fig_to_dict(fig_dumb),
-            "scatter": fig_to_dict(fig_scatter),
-            "recovery": fig_to_dict(fig_rec)
-        },
-        "table": table_data
+            "top_gain": fig_to_dict(fig_gain)
+        }
     }
-
-
-@app.post("/api/regional")
-async def get_regional_analytics(state: FilterState):
-    continents = state.continents or ALL_CONTINENTS
-    t_mode, y0, y1, snap, line_y0, line_y1, snap_marker = _resolve_time_window(state)
-
-    df_reg_filt = DF_REG[DF_REG["Continent"].isin(continents)]
-    fig_reg = create_regional_comparison_chart(df_reg_filt, metric=state.regional_metric, start_year=line_y0, end_year=line_y1, snapshot_marker=snap_marker)
-
-    filtered_panel = DF_PANEL[DF_PANEL["Continent"].isin(continents)]
-    if state.focus_country != "All Countries":
-        co2_df = filtered_panel[filtered_panel["Entity"] == state.focus_country].copy()
-        co2_df["CO2_Emissions_Gt"] = co2_df["CO2_Emissions_tonnes"] / 1e9
-        title_p = state.focus_country
-    else:
-        co2_df = filtered_panel.groupby("Year")["CO2_Emissions_tonnes"].sum().reset_index()
-        co2_df["CO2_Emissions_Gt"] = co2_df["CO2_Emissions_tonnes"] / 1e9
-        title_p = "Global" if len(continents) == 6 else ", ".join(continents)
-
-    fig_co2 = create_environmental_impact_chart(
-        co2_df, start_year=line_y0, end_year=min(line_y1, 2024), title_prefix=title_p,
-        snapshot_marker=snap_marker if (snap_marker and snap_marker <= 2024) else None
-    )
-
-    rli_default = ["BRA", "IDN", "COD", "MYS", "PER", "BOL"]
-    if state.focus_country != "All Countries":
-        f_sub = DF_PANEL[DF_PANEL["Entity"] == state.focus_country]
-        if not f_sub.empty and f_sub["ISO3"].iloc[0] not in rli_default:
-            rli_default.append(f_sub["ISO3"].iloc[0])
-
-    df_bio = filtered_panel[(filtered_panel["ISO3"].isin(rli_default)) & (filtered_panel["Year"] >= line_y0) & (filtered_panel["Year"] <= line_y1)].dropna(subset=["Red_List_Index"])
-    if not df_bio.empty:
-        fig_rli = px.line(
-            df_bio, x="Year", y="Red_List_Index", color="Entity", markers=True,
-            title="IUCN Red List Index in Key Forest Frontiers (1.0 = Least Concern)",
-            labels={"Red_List_Index": "Red List Index"}
-        )
-        _add_snapshot_vline(fig_rli, snap_marker)
-        _apply_layout(fig_rli, title=dict(font=dict(size=14, color="#0f172a")))
-    else:
-        fig_rli = _empty_figure("IUCN Red List Index Data Not Available")
-
-    reg_snap = df_reg_filt[df_reg_filt["Year"] == snap].copy()
-    reg_snap["Forest_Area_Mha"] = reg_snap["Forest_Area_Mha"].round(2)
-    reg_snap["Annual_Change_Mha"] = reg_snap["Annual_Change_Mha"].round(3)
-    reg_snap["Forest_Share_pct"] = reg_snap["Forest_Share_pct"].round(1)
-    reg_snap["CO2_Emissions_Mt"] = reg_snap["CO2_Emissions_Mt"].round(1)
-    reg_snap["Direction"] = np.where(reg_snap["Annual_Change_Mha"] < 0, "DECREASED", np.where(reg_snap["Annual_Change_Mha"] > 0, "INCREASED", "STABLE"))
-
-    return {
-        "year_label": str(snap),
-        "charts": {
-            "regional_lines": fig_to_dict(fig_reg),
-            "co2": fig_to_dict(fig_co2),
-            "rli": fig_to_dict(fig_rli)
-        },
-        "table": reg_snap.sort_values("Forest_Area_Mha", ascending=False)[
-            ["Continent", "Forest_Area_Mha", "Annual_Change_Mha", "Direction", "Forest_Share_pct", "CO2_Emissions_Mt"]
-        ].fillna(0).to_dict(orient="records")
-    }
-
-
-def _get_dataset_df(dataset: str, q: str = "", time_mode: str = "range", start_year: int = 1990, end_year: int = 2025, snapshot_year: int = 2020, continents: Optional[List[str]] = None) -> pd.DataFrame:
-    y0, y1 = (snapshot_year, snapshot_year) if time_mode == "snapshot" else (min(start_year, end_year), max(start_year, end_year))
-    if dataset == "country_panel":
-        df = DF_PANEL.copy()
-    elif dataset == "hotspots":
-        if time_mode == "snapshot":
-            df = DF_PANEL[(DF_PANEL["Year"] == snapshot_year) & (DF_PANEL["Continent"].isin(continents or ALL_CONTINENTS))].copy()
-        else:
-            df = compute_period_hotspots_df(y0, y1, continents or ALL_CONTINENTS)
-    elif dataset == "global_summary":
-        df = DF_GLOBAL.copy()
-    elif dataset == "drivers":
-        df = DF_DRIVERS.copy()
-    elif dataset == "commodities":
-        df = DF_COMM.copy()
-    elif dataset == "regional":
-        df = DF_REG.copy()
-    else:
-        raise HTTPException(status_code=404, detail="Unknown dataset")
-
-    if "Year" in df.columns:
-        df = df[(df["Year"] >= y0) & (df["Year"] <= y1)]
-    if continents and "Continent" in df.columns and dataset != "hotspots":
-        df = df[df["Continent"].isin(continents)]
-    if q:
-        mask = pd.Series(False, index=df.index)
-        for col in ["Entity", "ISO3", "Code", "Continent"]:
-            if col in df.columns:
-                mask |= df[col].astype(str).str.contains(q, case=False, na=False)
-        df = df[mask]
-    return df
-
-
-@app.get("/api/data")
-async def get_explorer_data(
-    dataset: str = "country_panel",
-    q: str = "",
-    time_mode: str = "range",
-    start_year: int = 1990,
-    end_year: int = 2025,
-    snapshot_year: int = 2020,
-    continents: str = ""
-):
-    cont_list = [c for c in continents.split(",") if c] if continents else ALL_CONTINENTS
-    df = _get_dataset_df(dataset, q, time_mode, start_year, end_year, snapshot_year, cont_list)
-    total_rows = len(df)
-    preview = df.head(200).replace({np.nan: None})
-    return {
-        "total_rows": total_rows,
-        "columns": list(preview.columns),
-        "rows": preview.to_dict(orient="records")
-    }
-
-
-@app.get("/api/download/{dataset}")
-async def download_dataset_csv(
-    dataset: str,
-    q: str = "",
-    time_mode: str = "range",
-    start_year: int = 1990,
-    end_year: int = 2025,
-    snapshot_year: int = 2020,
-    continents: str = ""
-):
-    cont_list = [c for c in continents.split(",") if c] if continents else ALL_CONTINENTS
-    df = _get_dataset_df(dataset, q, time_mode, start_year, end_year, snapshot_year, cont_list)
-    buf = io.StringIO()
-    df.to_csv(buf, index=False)
-    buf.seek(0)
-    suffix = f"{snapshot_year}" if time_mode == "snapshot" else f"{start_year}_{end_year}"
-    return StreamingResponse(
-        iter([buf.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={dataset}_{suffix}.csv"}
-    )
 

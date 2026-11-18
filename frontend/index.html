@@ -124,11 +124,8 @@
             <!-- NAVIGATION TABS -->
             <nav class="tab-nav" role="tablist">
                 <button class="tab-btn active" data-tab="overview">🌐 Overview &amp; Global Heatmap</button>
-                <button class="tab-btn" data-tab="country">🏳️ Country-Wise Analytics</button>
                 <button class="tab-btn" data-tab="causes">🔍 Cause Analytics</button>
                 <button class="tab-btn" data-tab="hotspots">🔥 Hotspots &amp; Recovery</button>
-                <button class="tab-btn" data-tab="regional">🌍 Regional &amp; Impact</button>
-                <button class="tab-btn" data-tab="data">📊 Data Explorer</button>
             </nav>
 
             <!-- LOADING BAR -->
@@ -164,17 +161,12 @@
                             </select>
                         </div>
                     </div>
-                    <div id="chart-overview-heatmap" class="chart-box tall"></div>
+                    <div id="chart-overview-heatmap" class="chart-box hero-heatmap"></div>
                     <div id="map-click-banner" class="map-click-banner hidden"></div>
                 </div>
 
-                <div class="grid-2-uneven">
-                    <div class="card">
-                        <div id="chart-overview-trend" class="chart-box medium"></div>
-                    </div>
-                    <div class="card">
-                        <div id="chart-overview-secondary" class="chart-box medium"></div>
-                    </div>
+                <div class="card">
+                    <div id="chart-overview-trend" class="chart-box wide-heatmap"></div>
                 </div>
 
                 <div class="card">
@@ -190,81 +182,7 @@
                 </div>
             </section>
 
-            <!-- TAB 2: COUNTRY-WISE ANALYTICS -->
-            <section id="tab-country" class="tab-panel">
-                <div class="card compact-card">
-                    <div class="country-controls-row">
-                        <div class="control-inline">
-                            <label class="control-label" for="sel-country-primary">Primary Country</label>
-                            <select id="sel-country-primary" class="form-select"></select>
-                        </div>
-                        <div id="country-scorecard-header" class="scorecard-header"></div>
-                    </div>
-                </div>
-
-                <div id="country-kpis" class="kpi-grid"></div>
-
-                <div class="grid-2-uneven-left">
-                    <div class="card">
-                        <div id="chart-country-zoom" class="chart-box medium"></div>
-                    </div>
-                    <div class="card">
-                        <div id="chart-country-deep" class="chart-box medium"></div>
-                    </div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="card">
-                        <div id="chart-country-cause" class="chart-box medium"></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-toolbar compact">
-                            <span class="control-label">Breakdown View</span>
-                            <div class="segmented-inline" id="country-sec-btns">
-                                <button type="button" class="seg-btn active" data-val="commodity">Commodity Footprint</button>
-                                <button type="button" class="seg-btn" data-val="gross">Gross Loss vs. Gain</button>
-                            </div>
-                        </div>
-                        <div id="chart-country-secondary" class="chart-box medium"></div>
-                    </div>
-                </div>
-
-                <!-- MULTI-COUNTRY COMPARISON -->
-                <div class="card">
-                    <div class="card-toolbar">
-                        <div>
-                            <h2 class="card-title">Multi-Country Side-by-Side Comparison</h2>
-                            <p class="card-subtitle">Compare up to 6 countries on forest trajectory, driver profile, and annual intensity spikes.</p>
-                        </div>
-                        <div class="toolbar-controls">
-                            <select id="sel-compare-metric" class="form-select compact">
-                                <option value="Forest_Area_Mha">Forest Area (Mha)</option>
-                                <option value="Annual_Change_Mha">Annual Net Change (Mha/yr)</option>
-                                <option value="Forest_Share_pct">Forest Cover Share (%)</option>
-                                <option value="CO2_Emissions_Mt">Land-Use CO₂ (Mt/yr)</option>
-                            </select>
-                            <label class="checkbox-inline">
-                                <input type="checkbox" id="chk-normalize-compare" checked>
-                                <span>Normalize (Start = 100)</span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="compare-picker">
-                        <div class="compare-add-row">
-                            <select id="sel-add-compare" class="form-select compact"></select>
-                            <button id="btn-add-compare" class="btn-primary">+ Add Country</button>
-                        </div>
-                        <div id="compare-chips" class="chip-list"></div>
-                    </div>
-                    <div class="grid-2-uneven">
-                        <div id="chart-compare-lines" class="chart-box medium"></div>
-                        <div id="chart-compare-radar" class="chart-box medium"></div>
-                    </div>
-                    <div id="chart-compare-heatmap" class="chart-box medium"></div>
-                </div>
-            </section>
-
-            <!-- TAB 3: CAUSE ANALYTICS -->
+            <!-- TAB 2: CAUSE ANALYTICS -->
             <section id="tab-causes" class="tab-panel">
                 <div class="card compact-card">
                     <div class="card-toolbar">
@@ -285,10 +203,7 @@
                         <div class="card"><div id="chart-causes-comm" class="chart-box medium"></div></div>
                     </div>
                     <div class="card"><div id="chart-causes-stacked" class="chart-box medium"></div></div>
-                    <div class="grid-2">
-                        <div class="card"><div id="chart-causes-sunburst" class="chart-box medium"></div></div>
-                        <div class="card"><div id="chart-causes-all-heat" class="chart-box medium"></div></div>
-                    </div>
+                    <div class="card"><div id="chart-causes-sunburst" class="chart-box medium"></div></div>
                 </div>
 
                 <!-- Mode B: Specific Cause Isolated -->
@@ -301,10 +216,35 @@
                         <div class="card"><div id="chart-cause-spec-traj" class="chart-box medium"></div></div>
                         <div class="card"><div id="chart-cause-spec-share" class="chart-box medium"></div></div>
                     </div>
-                    <div class="card"><div id="chart-cause-spec-heat" class="chart-box tall"></div></div>
+                    <div class="card"><div id="chart-cause-spec-heat" class="chart-box wide-heatmap"></div></div>
                     <div class="card">
                         <h3 class="card-title">Top 25 Countries Ranked by Selected Cause</h3>
                         <div id="cause-table-wrap" class="table-wrap"></div>
+                    </div>
+                </div>
+
+                <!-- MULTI-COUNTRY SIDE-BY-SIDE COMPARISON (MOVED TO CAUSE ANALYTICS) -->
+                <div class="card">
+                    <div class="card-toolbar">
+                        <div>
+                            <h2 class="card-title">Multi-Country Side-by-Side Comparison</h2>
+                            <p class="card-subtitle">Compare up to 6 countries on driver profile and annual loss intensity spikes.</p>
+                        </div>
+                    </div>
+                    <div class="compare-picker">
+                        <div class="compare-add-row">
+                            <select id="sel-add-compare" class="form-select compact"></select>
+                            <button id="btn-add-compare" class="btn-primary">+ Add Country</button>
+                        </div>
+                        <div id="compare-chips" class="chip-list"></div>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">Driver Profile Distribution Across Selected Countries</h3>
+                        <div id="chart-compare-radar" class="chart-box medium"></div>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title">Annual Deforestation Intensity Heatmap (Spike Detection)</h3>
+                        <div id="chart-compare-heatmap" class="chart-box wide-heatmap"></div>
                     </div>
                 </div>
             </section>
@@ -325,73 +265,11 @@
                     <div class="card"><div id="chart-hotspots-loss" class="chart-box tall"></div></div>
                     <div class="card"><div id="chart-hotspots-gain" class="chart-box tall"></div></div>
                 </div>
-                <div class="grid-2">
-                    <div class="card"><div id="chart-hotspots-dumbbell" class="chart-box tall"></div></div>
-                    <div class="card"><div id="chart-hotspots-scatter" class="chart-box tall"></div></div>
-                </div>
-                <div class="card">
-                    <div id="chart-hotspots-recovery" class="chart-box medium"></div>
-                </div>
-                <div class="card">
-                    <h3 class="card-title">Top Deforested Countries Breakdown</h3>
-                    <div id="hotspots-table-wrap" class="table-wrap"></div>
-                </div>
-            </section>
-
-            <!-- TAB 5: REGIONAL & ENVIRONMENTAL IMPACT -->
-            <section id="tab-regional" class="tab-panel">
-                <div class="card">
-                    <div class="card-toolbar">
-                        <h2 class="card-title">Continental Comparison (Africa, Asia, Europe, North America, South America, Oceania)</h2>
-                        <select id="sel-regional-metric" class="form-select compact">
-                            <option value="Forest_Area_Mha">Total Forest Area (Mha)</option>
-                            <option value="Annual_Change_Mha">Annual Net Change (Mha/yr)</option>
-                            <option value="Forest_Share_pct">Forest Cover Share (%)</option>
-                            <option value="CO2_Emissions_Mt">Land-Use CO₂ Emissions (Mt)</option>
-                        </select>
-                    </div>
-                    <div id="chart-regional-lines" class="chart-box medium"></div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="card"><div id="chart-regional-co2" class="chart-box medium"></div></div>
-                    <div class="card"><div id="chart-regional-rli" class="chart-box medium"></div></div>
-                </div>
-
-                <div class="card">
-                    <h3 id="regional-table-title" class="card-title">Continental Summary</h3>
-                    <div id="regional-table-wrap" class="table-wrap"></div>
-                </div>
-            </section>
-
-            <!-- TAB 6: DATA EXPLORER & EXPORT -->
-            <section id="tab-data" class="tab-panel">
-                <div class="card">
-                    <div class="card-toolbar">
-                        <div>
-                            <h2 class="card-title">Data Explorer &amp; CSV Export</h2>
-                            <p id="data-count-label" class="card-subtitle">Search, filter, and export verified country and global datasets.</p>
-                        </div>
-                        <div class="toolbar-controls">
-                            <select id="sel-dataset" class="form-select compact">
-                                <option value="country_panel">Country Forest Panel (1990–2025)</option>
-                                <option value="hotspots">Period Hotspot Rankings</option>
-                                <option value="global_summary">Global Summary (1990–2025)</option>
-                                <option value="drivers">Direct Physical Drivers (2001–2024)</option>
-                                <option value="commodities">Commodity Drivers (2001–2023)</option>
-                                <option value="regional">Continental Comparison</option>
-                            </select>
-                            <input type="text" id="inp-data-search" class="form-input" placeholder="Search country, ISO3, or continent...">
-                            <a id="btn-download-csv" class="btn-primary" href="/api/download/country_panel" download>📥 Download CSV</a>
-                        </div>
-                    </div>
-                    <div id="explorer-table-wrap" class="table-wrap tall-table"></div>
-                </div>
             </section>
         </main>
     </div>
 
-    <script src="/static/js/dashboard.js?v=20261112c"></script>
+    <script src="/static/js/dashboard.js?v=20261119d"></script>
 </body>
 </html>
 
