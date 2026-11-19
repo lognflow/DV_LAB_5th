@@ -321,14 +321,12 @@ def test_fastapi_frontend_and_endpoints(api_client):
 
 
 def test_notebooks_exist_and_executed():
-    """Verify all 7 notebooks exist and contain executed code cells with outputs."""
+    """Verify all active notebooks exist and contain executed code cells with outputs."""
     notebook_files = [
         "01_data_collection_and_preprocessing.ipynb",
-        "02_exploratory_data_analysis.ipynb",
         "03_global_deforestation_analysis.ipynb",
         "04_causes_of_deforestation.ipynb",
         "05_country_and_regional_hotspots.ipynb",
-        "06_forest_recovery_and_environmental_impact.ipynb",
         "07_interactive_visualizations.ipynb"
     ]
     nb_dir = os.path.join(PROJ_ROOT, "notebooks")

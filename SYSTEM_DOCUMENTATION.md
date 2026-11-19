@@ -263,13 +263,11 @@ d:\DVLAB
 │   └───js
 │           dashboard.js              <-- Reactive client controller & Plotly renderer
 │
-├───notebooks                         <-- 7 Executed Research Jupyter Notebooks
+├───notebooks                         <-- Executed Research Jupyter Notebooks
 │       01_data_collection_and_preprocessing.ipynb
-│       02_exploratory_data_analysis.ipynb
 │       03_global_deforestation_analysis.ipynb
 │       04_causes_of_deforestation.ipynb
 │       05_country_and_regional_hotspots.ipynb
-│       06_forest_recovery_and_environmental_impact.ipynb
 │       07_interactive_visualizations.ipynb
 │
 ├───tests                             <-- Automated Test Suite

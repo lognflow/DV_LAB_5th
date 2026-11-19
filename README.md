@@ -85,13 +85,11 @@ d:\DVLAB\
 │       ├── commodity_drivers_processed.csv      # Agricultural commodities by country/region (4,001 rows)
 │       ├── country_hotspots.csv                 # Cumulative loss rankings & hotspot classifications (235 rows)
 │       └── metadata_sources.json                # Complete audit trail & definition caveats
-├── notebooks/                                   # 7 Fully implemented & executed Jupyter Notebooks (.ipynb)
+├── notebooks/                                   # Fully implemented & executed Jupyter Notebooks (.ipynb)
 │   ├── 01_data_collection_and_preprocessing.ipynb
-│   ├── 02_exploratory_data_analysis.ipynb
 │   ├── 03_global_deforestation_analysis.ipynb
 │   ├── 04_causes_of_deforestation.ipynb
 │   ├── 05_country_and_regional_hotspots.ipynb
-│   ├── 06_forest_recovery_and_environmental_impact.ipynb
 │   └── 07_interactive_visualizations.ipynb
 ├── src/                                         # Reusable analytics, preprocessing & visualization modules
 │   ├── charts.py                                # Plotly publication-grade chart builders

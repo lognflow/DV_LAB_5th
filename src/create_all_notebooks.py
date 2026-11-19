@@ -676,11 +676,9 @@ The interactive visual architecture enables seamless exploration from macro-cont
 def generate_all():
     notebooks = {
         "01_data_collection_and_preprocessing.ipynb": build_nb1(),
-        "02_exploratory_data_analysis.ipynb": build_nb2(),
         "03_global_deforestation_analysis.ipynb": build_nb3(),
         "04_causes_of_deforestation.ipynb": build_nb4(),
         "05_country_and_regional_hotspots.ipynb": build_nb5(),
-        "06_forest_recovery_and_environmental_impact.ipynb": build_nb6(),
         "07_interactive_visualizations.ipynb": build_nb7()
     }
     
