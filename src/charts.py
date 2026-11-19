@@ -1321,15 +1321,24 @@ def create_country_heatmap(df_cause, cause_col, cause_label, iso3_list=None, yea
     )
 
 
-def create_forest_vs_emissions_scatter(df_panel, year=2020):
+def create_forest_vs_emissions_scatter(df_panel, year=2020, continents=None):
     """
     Interactive Bubble Plot: Annual Net Change vs. CO2 Land-Use Emissions, sized by Forest Area.
     """
-    sub = df_panel[(df_panel["Year"] == year) & (df_panel["Forest_Area_Mha"] > 0.5)].dropna(
+    eff_year = min(year, 2024)
+    all_conts = ["South America", "Africa", "Asia", "North America", "Europe", "Oceania"]
+    target_conts = [c for c in (continents or all_conts) if c in all_conts] or all_conts
+
+    sub = df_panel[
+        (df_panel["Year"] == eff_year) &
+        (df_panel["Forest_Area_Mha"] > 0.5) &
+        (df_panel["Continent"].isin(target_conts))
+    ].dropna(
         subset=["Annual_Change_Mha", "CO2_Emissions_Mt", "Forest_Area_Mha"]
     ).copy()
+
     if sub.empty:
-        return _empty_figure(f"Scatter data Not Available for {year}")
+        return _empty_figure(f"Scatter data Not Available for {eff_year}")
 
     fig = px.scatter(
         sub,
@@ -1340,7 +1349,7 @@ def create_forest_vs_emissions_scatter(df_panel, year=2020):
         hover_name="Entity",
         size_max=55,
         color_discrete_map=CONTINENT_COLORS,
-        title=f"Country Forest Change vs. Land-Use CO₂ Emissions ({year}) [Bubble Size = Total Forest Area]",
+        title=f"Country Forest Change vs. Land-Use CO₂ Emissions ({eff_year}) [Bubble Size = Total Forest Area]",
         labels={
             "Annual_Change_Mha": "Annual Net Forest Change (Mha/yr)",
             "CO2_Emissions_Mt": "Land-Use CO₂ Emissions (Mt CO₂/yr)",
@@ -1355,6 +1364,103 @@ def create_forest_vs_emissions_scatter(df_panel, year=2020):
         title=dict(font=dict(size=15, color=THEME["primary"])),
         xaxis=dict(showgrid=True, gridcolor="#f1f5f9"),
         yaxis=dict(showgrid=True, gridcolor="#f1f5f9")
+    )
+
+
+def create_continental_forest_trajectory(df_panel, year_range=(1990, 2025), snapshot_marker=None, continents=None):
+    """
+    Continental Total Forest Area Trajectory (1990–2025).
+    Tracks the temporal evolution of aggregate forest stock across continents.
+    """
+    y0, y1 = year_range
+    all_conts = ["South America", "Africa", "Asia", "North America", "Europe", "Oceania"]
+    target_conts = [c for c in (continents or all_conts) if c in all_conts] or all_conts
+
+    sub = df_panel[
+        (df_panel["Continent"].isin(target_conts)) &
+        (df_panel["Year"] >= y0) &
+        (df_panel["Year"] <= y1)
+    ].copy()
+
+    if sub.empty:
+        return _empty_figure("Continental trajectory data Not Available")
+
+    grouped = sub.groupby(["Continent", "Year"])["Forest_Area_Mha"].sum().reset_index()
+
+    fig = px.line(
+        grouped,
+        x="Year",
+        y="Forest_Area_Mha",
+        color="Continent",
+        color_discrete_map=CONTINENT_COLORS,
+        title=f"Continental Forest Area Trajectory ({y0}–{y1})",
+        labels={
+            "Year": "Year",
+            "Forest_Area_Mha": "Total Forest Area (Million Hectares)",
+            "Continent": "Continent"
+        }
+    )
+    fig.update_traces(mode="lines+markers", marker=dict(size=4), line=dict(width=2.5))
+    _add_snapshot_vline(fig, snapshot_marker)
+    return _apply_layout(
+        fig,
+        title=dict(font=dict(size=15, color=THEME["primary"])),
+        xaxis=dict(showgrid=True, gridcolor="#f1f5f9"),
+        yaxis=dict(showgrid=True, gridcolor="#f1f5f9"),
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=-0.28, xanchor="center", x=0.5)
+    )
+
+
+def create_co2_emissions_trajectory(df_panel, df_global=None, year_range=(1990, 2024), snapshot_marker=None, continents=None):
+    """
+    Line chart showing Year on X-axis and Land-Use CO2 Emissions on Y-axis.
+    Responds dynamically to year range, snapshot year, and continental filters.
+    """
+    y0, y1 = year_range
+    y1_clamped = min(y1, 2024)
+    all_conts = ["South America", "Africa", "Asia", "North America", "Europe", "Oceania"]
+    target_conts = [c for c in (continents or all_conts) if c in all_conts] or all_conts
+    is_global = len(target_conts) == len(all_conts)
+
+    if is_global and df_global is not None:
+        sub = df_global[(df_global["Year"] >= y0) & (df_global["Year"] <= y1_clamped)].dropna(subset=["CO2_Emissions_Mt"]).copy()
+        title_prefix = "Global"
+    else:
+        c_sub = df_panel[
+            (df_panel["Continent"].isin(target_conts)) &
+            (df_panel["Year"] >= y0) &
+            (df_panel["Year"] <= y1_clamped)
+        ].dropna(subset=["CO2_Emissions_Mt"])
+        sub = c_sub.groupby("Year")["CO2_Emissions_Mt"].sum().reset_index()
+        title_prefix = ", ".join(target_conts) if len(target_conts) <= 2 else f"{len(target_conts)} Continents"
+
+    if sub.empty:
+        return _empty_figure("CO₂ Emissions data Not Available for the selected filter")
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=sub["Year"],
+        y=sub["CO2_Emissions_Mt"],
+        name="Land-Use CO₂ Emissions",
+        mode="lines+markers",
+        line=dict(color="#ea580c", width=2.8),
+        marker=dict(size=5, color="#ea580c"),
+        fill="tozeroy",
+        fillcolor="rgba(234, 88, 12, 0.08)",
+        hovertemplate="<b>Year %{x}</b><br>CO₂ Emissions: <b>%{y:,.1f} Mt CO₂/yr</b><extra></extra>"
+    ))
+
+    _add_snapshot_vline(fig, snapshot_marker)
+    return _apply_layout(
+        fig,
+        title=dict(
+            text=f"{title_prefix} Land-Use CO₂ Emissions Trajectory ({sub['Year'].min()}–{sub['Year'].max()})",
+            font=dict(size=15, color=THEME["primary"])
+        ),
+        xaxis=dict(title="Year", showgrid=True, gridcolor="#f1f5f9"),
+        yaxis=dict(title="Land-Use CO₂ Emissions (Mt CO₂ / year)", showgrid=True, gridcolor="#f1f5f9"),
+        hovermode="x unified"
     )
 
 

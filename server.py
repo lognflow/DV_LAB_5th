@@ -55,6 +55,8 @@ from src.charts import (
     create_country_cause_radar,
     create_country_heatmap,
     create_forest_vs_emissions_scatter,
+    create_continental_forest_trajectory,
+    create_co2_emissions_trajectory,
     create_country_treemap,
     create_slope_dumbbell_chart,
     create_environmental_impact_chart
@@ -662,17 +664,24 @@ async def get_hotspots_analytics(state: FilterState):
     if t_mode == "snapshot":
         fig_loss = create_top_countries_annual_bar(filtered_panel, year=snap, top_n=state.top_n, ascending=True, df_hotspots=DF_HOTSPOTS)
         fig_gain = create_top_countries_annual_bar(filtered_panel, year=snap, top_n=state.top_n, ascending=False, df_hotspots=DF_HOTSPOTS)
+        fig_cont = create_continental_forest_trajectory(filtered_panel, year_range=(line_y0, line_y1), snapshot_marker=snap_marker, continents=continents)
+        fig_co2 = create_co2_emissions_trajectory(filtered_panel, df_global=DF_GLOBAL, year_range=(line_y0, min(line_y1, 2024)), snapshot_marker=snap_marker, continents=continents)
     else:
         period_hotspots = compute_period_hotspots_df(y0, y1, continents)
         fig_loss = create_top_countries_bar(period_hotspots, top_n=state.top_n, ascending=True)
         fig_gain = create_top_countries_bar(period_hotspots, top_n=state.top_n, ascending=False)
+        fig_cont = create_continental_forest_trajectory(filtered_panel, year_range=(y0, y1), snapshot_marker=None, continents=continents)
+        fig_co2 = create_co2_emissions_trajectory(filtered_panel, df_global=DF_GLOBAL, year_range=(y0, min(y1, 2024)), snapshot_marker=None, continents=continents)
 
     return {
         "time_mode": t_mode,
         "year_label": f"{snap}" if t_mode == "snapshot" else f"{y0}–{y1}",
         "charts": {
             "top_loss": fig_to_dict(fig_loss),
-            "top_gain": fig_to_dict(fig_gain)
+            "top_gain": fig_to_dict(fig_gain),
+            "cont_traj": fig_to_dict(fig_cont),
+            "co2_line": fig_to_dict(fig_co2),
+            "co2_scatter": fig_to_dict(fig_co2)
         }
     }
 

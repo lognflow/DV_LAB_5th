@@ -413,33 +413,35 @@ reg_driver_pct.round(1)
 def build_nb5():
     cells = [
         nbf.v4.new_markdown_cell("""# Global Deforestation Analysis (1990–2025)
-## Notebook 05: Country Rankings, Deforestation Hotspots & Continental Disparities
+## Notebook 05: Country Rankings, Deforestation Hotspots & Continental Trajectories
 
 ### Research Objectives
-Deforestation is not evenly distributed across the globe; it is intensely concentrated in specific tropical forest frontiers. This notebook conducts:
-1. Identification and ranking of the **Top 10 Most Deforested Countries** between 1990 and 2025.
-2. Deforestation hotspot detection across major rainforest basins:
-   - **The Amazon Basin & Cerrado** (Brazil, Bolivia, Peru, Colombia)
-   - **The Congo Basin** (DRC, Cameroon, Gabon, Congo)
-   - **Southeast Asia** (Indonesia, Malaysia, Myanmar)
-   - **The Gran Chaco** (Paraguay, Argentina)
-3. Spatial analysis and choropleth cartography.
+Deforestation is intensely concentrated in specific tropical forest frontiers. This notebook conducts:
+1. Identification and ranking of the **Top 10 Deforestation Hotspots** (cumulative net loss leaders).
+2. Identification and ranking of the **Top 10 Forest Recovery Leaders** (net forest expansion leaders).
+3. Longitudinal **Continental Forest Area Trajectories** across all 6 continents (1990–2025).
+4. Environmental analysis of **Country Net Forest Change vs. Land-Use CO₂ Emissions** (Global Carbon Project).
 """),
         nbf.v4.new_code_cell("""import os, sys
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+import plotly.express as px
 
 PROJ_ROOT = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(PROJ_ROOT)
 from src.utils import load_processed_data, THEME, format_metric
-from src.charts import create_top_countries_bar, create_world_choropleth, create_regional_comparison_chart
+from src.charts import (
+    create_top_countries_bar,
+    create_continental_forest_trajectory,
+    create_co2_emissions_trajectory
+)
 
 data = load_processed_data()
 df_hotspots = data["hotspots"]
 df_panel = data["country_panel"]
-df_reg = data["regional"]
-print("Hotspots and Regional panel loaded successfully.")
+df_global = data["global_summary"]
+print("Hotspots, Country panel, and Global summary loaded successfully.")
 """),
         nbf.v4.new_markdown_cell("""### 1. Top 10 Countries with Highest Cumulative Forest Loss (1990–2025)
 Ranking sovereign countries by cumulative net forest loss in million hectares.
@@ -447,35 +449,28 @@ Ranking sovereign countries by cumulative net forest loss in million hectares.
         nbf.v4.new_code_cell("""fig_top_loss = create_top_countries_bar(df_hotspots, top_n=10, ascending=True)
 fig_top_loss.show()
 """),
-        nbf.v4.new_markdown_cell("""### 2. Hotspot Data Table & Percentage Depletion
-Countries experiencing the highest percentage loss of their total forest estate since 1990.
+        nbf.v4.new_markdown_cell("""### 2. Top 10 Forest Recovery Leaders (Net Expansion 1990–2025)
+Ranking countries that have achieved the largest net forest expansion through afforestation, reforestation, and natural regeneration.
 """),
-        nbf.v4.new_code_cell("""top_loss_table = df_hotspots.sort_values("Net_Change_1990_to_Latest_Mha").head(10)[[
-    "ISO3", "Entity", "Continent", "Forest_Area_1990_ha", "Forest_Area_Latest_ha", "Net_Change_1990_to_Latest_Mha", "Pct_Change_Since_1990", "Hotspot_Status"
-]]
-top_loss_table["Forest_Area_1990_Mha"] = top_loss_table["Forest_Area_1990_ha"] / 1e6
-top_loss_table["Forest_Area_Latest_Mha"] = top_loss_table["Forest_Area_Latest_ha"] / 1e6
-top_loss_table[["Entity", "Continent", "Forest_Area_1990_Mha", "Forest_Area_Latest_Mha", "Net_Change_1990_to_Latest_Mha", "Pct_Change_Since_1990", "Hotspot_Status"]].round(2)
+        nbf.v4.new_code_cell("""fig_top_gain = create_top_countries_bar(df_hotspots, top_n=10, ascending=False)
+fig_top_gain.show()
 """),
-        nbf.v4.new_markdown_cell("""### 3. Continental Trajectories (1990–2025)
-Comparing forest area and annual change across the six continents: Africa, Asia, Europe, North America, South America, Oceania.
+        nbf.v4.new_markdown_cell("""### 3. Continental Total Forest Area Trajectories (1990–2025)
+Aggregating national forest stocks across Africa, Asia, Europe, North America, South America, and Oceania.
 """),
-        nbf.v4.new_code_cell("""fig_reg = create_regional_comparison_chart(df_reg, metric="Forest_Area_Mha")
-fig_reg.show()
+        nbf.v4.new_code_cell("""fig_cont = create_continental_forest_trajectory(df_panel, year_range=(1990, 2025))
+fig_cont.show()
 """),
-        nbf.v4.new_code_cell("""fig_reg_change = create_regional_comparison_chart(df_reg, metric="Annual_Change_Mha")
-fig_reg_change.show()
+        nbf.v4.new_markdown_cell("""### 4. Land-Use CO₂ Emissions Trajectory (Global Carbon Project 1990–2024)
+Temporal line chart tracking annual carbon dioxide flux released from global and continental land-use change and deforestation.
 """),
-        nbf.v4.new_markdown_cell("""### 4. Interactive World Choropleth Map (2020)
-Visualizing national forest cover change on a global cartographic projection.
-"""),
-        nbf.v4.new_code_cell("""fig_map = create_world_choropleth(df_panel, year=2020, metric="Annual_Change_Mha")
-fig_map.show()
+        nbf.v4.new_code_cell("""fig_co2 = create_co2_emissions_trajectory(df_panel, df_global=df_global, year_range=(1990, 2024))
+fig_co2.show()
 """),
         nbf.v4.new_markdown_cell("""### Statistical Findings & Hotspot Conclusions
 1. **Brazil as the Epicenter**: Brazil has experienced the world's highest absolute forest loss, losing over **132 Million hectares** of forest since 1990, followed by the Democratic Republic of Congo and Indonesia.
-2. **African Accelerated Loss**: Sub-Saharan Africa (DRC, Tanzania, Angola, Mozambique) is currently the continent with the highest net annual forest loss rate, driven by population growth, subsistence farming, and charcoal energy demand.
-3. **Severe Relative Depletion**: Countries such as Paraguay and Myanmar have lost substantial percentages (20% to over 35%) of their total native forest cover in only 35 years.
+2. **China's Afforestation Leadership**: China leads global forest recovery, having added over **60 Million hectares** through state-directed afforestation programs (Three-North Shelterbelt).
+3. **Continental Decoupling**: South America and Africa account for the overwhelming majority of global net loss and land-use carbon emissions, while Asia and Europe have transitioned to net positive forest stock expansion.
 """)]
     return create_nb(cells)
 

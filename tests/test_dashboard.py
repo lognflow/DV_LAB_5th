@@ -40,6 +40,8 @@ from src.charts import (
     create_country_cause_radar,
     create_country_heatmap,
     create_forest_vs_emissions_scatter,
+    create_continental_forest_trajectory,
+    create_co2_emissions_trajectory,
     create_country_treemap,
     create_slope_dumbbell_chart,
     create_environmental_impact_chart
@@ -156,6 +158,8 @@ def test_all_plotly_charts(dashboard_data):
         create_country_cause_radar(df_drivers, ["BRA", "COD", "CAN"]),
         create_country_heatmap(df_drivers, "Wildfire", "Wildfire"),
         create_forest_vs_emissions_scatter(df_panel, year=2020),
+        create_continental_forest_trajectory(df_panel),
+        create_co2_emissions_trajectory(df_panel, df_global),
         create_country_treemap(df_hotspots, mode="loss"),
         create_slope_dumbbell_chart(df_hotspots, top_n=10),
         create_environmental_impact_chart(df_global)
@@ -255,7 +259,13 @@ def test_fastapi_frontend_and_endpoints(api_client):
     assert r_beef.status_code == 200 and r_beef.json()["mode"] == "specific"
 
     # Hotspots Analytics
-    assert api_client.post("/api/hotspots", json={"top_n": 10}).status_code == 200
+    r_hot = api_client.post("/api/hotspots", json={"top_n": 10})
+    assert r_hot.status_code == 200
+    hot_json = r_hot.json()
+    assert "top_loss" in hot_json["charts"]
+    assert "top_gain" in hot_json["charts"]
+    assert "cont_traj" in hot_json["charts"]
+    assert "co2_line" in hot_json["charts"]
 
     # Verify removed tabs are absent from DOM
     assert 'data-tab="regional"' not in r_home.text
@@ -266,6 +276,8 @@ def test_fastapi_frontend_and_endpoints(api_client):
     assert 'data-tab="hotspots"' in r_home.text
     assert 'id="chart-compare-radar"' in r_home.text
     assert 'id="chart-compare-heatmap"' in r_home.text
+    assert 'id="chart-hotspots-cont-traj"' in r_home.text
+    assert 'id="chart-hotspots-co2-line"' in r_home.text
 
     # Snapshot Time Mode (Mutually exclusive single-year analysis)
     r_home = api_client.get("/")

@@ -224,6 +224,11 @@ FastAPI validates incoming data via Pydantic model `FilterState`. `_resolve_time
      - **Annual Spikiness:** Incorporates high-resolution annual satellite tree-cover loss (`Total_Loss_ha` 2001–2024) and historical variance (1990–2000), eliminating artificial flat multi-year step plateaus.
    - **Snap Markers:** Injects vertical dashed markers (`_add_snapshot_vline`) at the snapshot year on historical lines.
    - **Commodity Footprint:** Maps raw `"Beef"` columns to **`"Cattle (Beef, Leather & Pasture)"`** with official OWID / Singh et al. (2026) methodology disclaimers.
+   - **Hotspots & Recovery Suite:**
+     - **Top Hotspots & Recovery Rankings:** Top $N$ net forest loss leaders and net forest gain leaders.
+     - **Continental Forest Area Trajectory:** Multi-line trajectories of continental forest stocks across all 6 continents (1990–2025).
+     - **Country Forest Change vs. Land-Use CO₂ Emissions:** Interactive bubble chart mapping forest change against land-use carbon emissions.
+     - **Land-Use CO₂ Emissions Trajectory:** Longitudinal line chart tracking annual carbon flux released from land-use change and deforestation across selected regions (1990–2024).
 
 #### Phase 5: JSON Transcoding & Binary Buffer Removal ([server.py](file:///d:/DVLAB/server.py#L87-L120))
 - Plotly 7 serializes NumPy arrays into binary base64 dictionaries (`{"dtype": "f8", "bdata": "..."}`). Standard web JavaScript fails to deserialize these structures natively, resulting in blank maps.

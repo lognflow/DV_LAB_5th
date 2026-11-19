@@ -28,7 +28,7 @@ const PLOT_IDS = [
     "chart-causes-pie", "chart-causes-comm", "chart-causes-stacked", "chart-causes-sunburst",
     "chart-cause-spec-map", "chart-cause-spec-top", "chart-cause-spec-traj", "chart-cause-spec-share", "chart-cause-spec-heat",
     "chart-compare-radar", "chart-compare-heatmap",
-    "chart-hotspots-loss", "chart-hotspots-gain"
+    "chart-hotspots-loss", "chart-hotspots-gain", "chart-hotspots-cont-traj", "chart-hotspots-co2-line"
 ];
 
 function setLoading(isLoading) {
@@ -284,6 +284,13 @@ async function loadHotspotsTab() {
     const data = await fetchJson("/api/hotspots", buildPayload());
     renderPlotly("chart-hotspots-loss", data.charts.top_loss);
     renderPlotly("chart-hotspots-gain", data.charts.top_gain);
+    if (data.charts.cont_traj) {
+        renderPlotly("chart-hotspots-cont-traj", data.charts.cont_traj);
+    }
+    const co2Fig = data.charts.co2_line || data.charts.co2_scatter;
+    if (co2Fig) {
+        renderPlotly("chart-hotspots-co2-line", co2Fig);
+    }
     state.staleTabs.delete("hotspots");
 }
 
