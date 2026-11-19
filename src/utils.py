@@ -211,7 +211,6 @@ def load_processed_data():
     data = {}
     data["country_panel"] = pd.read_csv(os.path.join(DATA_DIR, "country_forest_panel.csv"))
     data["global_summary"] = pd.read_csv(os.path.join(DATA_DIR, "global_forest_summary.csv"))
-    data["regional"] = pd.read_csv(os.path.join(DATA_DIR, "regional_comparison.csv"))
     data["drivers"] = pd.read_csv(os.path.join(DATA_DIR, "deforestation_drivers_processed.csv"))
     data["commodities"] = pd.read_csv(os.path.join(DATA_DIR, "commodity_drivers_processed.csv"))
     data["hotspots"] = pd.read_csv(os.path.join(DATA_DIR, "country_hotspots.csv"))

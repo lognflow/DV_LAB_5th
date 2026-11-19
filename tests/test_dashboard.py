@@ -61,7 +61,6 @@ def test_processed_files_exist():
     required = [
         "country_forest_panel.csv",
         "global_forest_summary.csv",
-        "regional_comparison.csv",
         "deforestation_drivers_processed.csv",
         "commodity_drivers_processed.csv",
         "country_hotspots.csv",
@@ -76,8 +75,8 @@ def test_processed_files_exist():
 
 def test_continental_mapping_accuracy(dashboard_data):
     """Verify all 6 continents including South America match FAO 2020 totals."""
-    df_reg = dashboard_data["regional"]
-    reg_2020 = df_reg[df_reg["Year"] == 2020].set_index("Continent")["Forest_Area_Mha"].to_dict()
+    df_panel = dashboard_data["country_panel"]
+    reg_2020 = df_panel[df_panel["Year"] == 2020].groupby("Continent")["Forest_Area_Mha"].sum().to_dict()
 
     for cont in ["Africa", "Asia", "Europe", "North America", "South America", "Oceania"]:
         assert cont in reg_2020, f"Missing continent: {cont}"

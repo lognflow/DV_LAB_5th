@@ -36,24 +36,22 @@ flowchart TD
         R2["GFW / Curtis et al. (2001–2024)<br>30m Landsat Direct Drivers"]
         R3["OWID / Singh et al. (2001–2023)<br>Commodity Attribution"]
         R4["Global Carbon Project (1850–2024)<br>Land-Use CO₂ Emissions"]
-        R5["IUCN Red List (1993–2025)<br>Species Survival Index"]
-        R6["Natural Earth<br>GeoJSON Boundaries"]
+        R5["Natural Earth & Survey of India<br>GeoJSON Boundaries"]
         
         P["src/preprocess_data.py<br>Harmonization & ISO-3 Validation"]
         
-        R1 & R2 & R3 & R4 & R5 & R6 --> P
+        R1 & R2 & R3 & R4 & R5 --> P
         P --> D1[("country_forest_panel.csv<br>8,460 rows")]
         P --> D2[("country_hotspots.csv<br>235 rows")]
         P --> D3[("deforestation_drivers_processed.csv<br>4,750 rows")]
         P --> D4[("commodity_drivers_processed.csv<br>4,001 rows")]
         P --> D5[("global_forest_summary.csv<br>36 rows")]
-        P --> D6[("regional_comparison.csv<br>216 rows")]
     end
 
     subgraph Core_Engine ["2. Core Analytics & Visualization Engine"]
         U["src/utils.py<br>• compute_dynamic_kpis()<br>• format_area_value()<br>• CAUSE_METADATA & Palettes"]
-        C["src/charts.py<br>• 22 Plotly Figure Builders<br>• GeoPandas Zoom Choropleths<br>• Snapshot VLine Markers"]
-        D1 & D2 & D3 & D4 & D5 & D6 --> U --> C
+        C["src/charts.py<br>• Plotly Figure Builders<br>• GeoPandas Zoom Choropleths<br>• Survey of India Boundary Overlay"]
+        D1 & D2 & D3 & D4 & D5 --> U --> C
     end
 
     subgraph API_Layer ["3. Backend API (FastAPI / server.py)"]
@@ -63,8 +61,7 @@ flowchart TD
         S --> EP2["/api/country"]
         S --> EP3["/api/causes"]
         S --> EP4["/api/hotspots"]
-        S --> EP5["/api/regional"]
-        S --> EP6["/api/data & /api/download/{ds}"]
+        S --> EP5["/api/data & /api/download/{ds}"]
     end
 
     subgraph Frontend_Layer ["4. Interactive Frontend (Browser Client)"]
@@ -279,7 +276,7 @@ d:\DVLAB
 │       test_dashboard.py             <-- 8 test cases validating math, APIs & schemas
 │
 ├───data
-│   ├───raw                           <-- 11 Authentic Raw Datasets
+│   ├───raw                           <-- 9 Authentic Raw CSV Datasets + GeoJSON Boundaries
 │   │       annual_change_forest_area.csv
 │   │       annual_co2_land_use.csv
 │   │       annual_deforestation.csv
@@ -289,17 +286,16 @@ d:\DVLAB
 │   │       drivers_deforestation_commodity.csv
 │   │       forest_area.csv
 │   │       forest_area_share_land.csv
-│   │       red_list_index.csv
+│   │       india_soi_boundary.geojson
 │   │       tree_cover_loss_by_dominant_driver.csv
 │   │
-│   └───processed                     <-- 6 Harmonized Clean Analysis Datasets
+│   └───processed                     <-- 5 Harmonized Clean Analysis Datasets
 │           commodity_drivers_processed.csv
 │           country_forest_panel.csv
 │           country_hotspots.csv
 │           deforestation_drivers_processed.csv
 │           global_forest_summary.csv
 │           metadata_sources.json
-│           regional_comparison.csv
 ```
 
 ---
@@ -318,7 +314,6 @@ The data pipeline implemented in [src/preprocess_data.py](file:///d:/DVLAB/src/p
    - Links 5-year periodic inventory assessments (`annual_deforestation.csv`, `annual_forest_expansion.csv`) for reporting years 1990, 2000, 2010, 2015, and 2020.
    - Integrates World Bank/FAO land cover percentages (`forest_area_share_land.csv`).
    - Merges carbon emissions flux from land-use change (`annual_co2_land_use.csv`) from the Global Carbon Project (1990–2024).
-   - Links the IUCN Red List Index (`red_list_index.csv`) tracking species survival probability (1993–2025).
 
 3. **Derivation of Static Physical Land Areas:**
    - In FAO reporting, total national land area is invariant over short decadal windows. To avoid ratio artifacts, the pipeline derives static national physical land area from the 2020 baseline:
@@ -458,19 +453,6 @@ Global annual aggregate metrics from 1990 to 2025 (1 record per year).
 
 ---
 
-#### 6. `regional_comparison.csv` (216 Rows, 11 Columns)
-Continental summary across 6 continents and 36 years ($6 \times 36 = 216$ records).
-
-| Column Name | Data Type | Units | Description |
-| :--- | :---: | :---: | :--- |
-| `Year` | Integer | YYYY | 1990 through 2025. |
-| `Continent` | String | Categorical | `Africa`, `Asia`, `Europe`, `North America`, `South America`, `Oceania`. |
-| `Forest_Area_ha` / `sqkm` / `Mha` | Float | Area Units | Total continental forest stock. |
-| `Annual_Change_ha` / `Mha` | Float | Area / year | Net annual continental rate of change. |
-| `CO2_Emissions_tonnes` / `Mt` | Float | Carbon Flux | Net continental land-use CO₂ emissions. |
-| `Land_Area_ha` | Float | Hectares (ha) | Total continental physical land area. |
-| `Forest_Share_pct` | Float | % | True area-weighted continental forest cover share ($\sum \text{Forest} / \sum \text{Land} \times 100$). |
-
 ---
 
 ### Raw Source Datasets (`data/raw/`)
@@ -485,7 +467,7 @@ Continental summary across 6 continents and 36 years ($6 \times 36 = 216$ record
 | **`tree_cover_loss_by_dominant_driver.csv`** | 4,750 | Curtis et al. (Science 2018) / GFW | `Entity`, `Code`, `Year`, 7 driver columns | 30m resolution Landsat physical driver classifications (2001–2024). |
 | **`drivers_deforestation_commodity.csv`** | 4,001 | Singh et al. (2026) / Pendrill / OWID | `Entity`, `Code`, `Year`, 8 commodity columns | Econometric attribution of forest clearing to 8 agricultural commodities (2001–2023). |
 | **`annual_co2_land_use.csv`** | 37,450 | Global Carbon Project (GCP) | `Entity`, `Code`, `Year`, `Annual CO₂ emissions from land-use change` | Carbon dioxide flux from deforestation, wood harvest, and abandonment (1850–2024). |
-| **`red_list_index.csv`** | 12,013 | IUCN / BirdLife International | `Entity`, `Code`, `Year`, `Red List Index` | Aggregate species extinction risk index from 0.0 (all extinct) to 1.0 (least concern). |
 | **`country_regions.csv`** | 249 | United Nations Statistics Division (M49) | `alpha-3`, `name`, `region`, `sub-region`, `intermediate-region` | Standard geographic taxonomy mapping ISO-3 codes to continents and sub-regions. |
 | **`countries.geojson`** | 180 geometries | Natural Earth Vector | GeoJSON FeatureCollection (Properties: `name`, `ISO3`, `geometry`) | Polygon boundaries for country zoom maps and choropleths. |
+| **`india_soi_boundary.geojson`** | Official features | Survey of India | GeoJSON FeatureCollection | Official international border of India including Jammu, Kashmir, and Ladakh. |
 

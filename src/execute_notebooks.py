@@ -5,8 +5,12 @@ Execute all Jupyter Notebooks in-place to pre-compute and store all cell outputs
 import os
 import sys
 import glob
+import asyncio
 import nbformat
 from nbclient import NotebookClient
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 NOTEBOOK_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "notebooks")
 

@@ -397,14 +397,18 @@ async def get_country_analytics(state: FilterState):
         else ("INCREASED" if (pd.notna(net_ha) and net_ha > (100 if t_mode == "snapshot" else 500)) else ("Data Not Available" if pd.isna(net_ha) else "STABLE"))
     )
 
-    if t_mode == "snapshot":
-        rli_row = c_panel[c_panel["Year"] == snap].dropna(subset=["Red_List_Index"])
-        rli_str = f"{rli_row['Red_List_Index'].iloc[0]:.3f}" if not rli_row.empty else "Data Not Available"
-        rli_delta = ""
+    if "Red_List_Index" in c_panel.columns:
+        if t_mode == "snapshot":
+            rli_row = c_panel[c_panel["Year"] == snap].dropna(subset=["Red_List_Index"])
+            rli_str = f"{rli_row['Red_List_Index'].iloc[0]:.3f}" if not rli_row.empty else "Data Not Available"
+            rli_delta = ""
+        else:
+            rli_vals = c_panel.dropna(subset=["Red_List_Index"])
+            rli_str = f"{rli_vals['Red_List_Index'].iloc[-1]:.3f}" if not rli_vals.empty else "Data Not Available"
+            rli_delta = f"({rli_vals['Red_List_Index'].iloc[-1] - rli_vals['Red_List_Index'].iloc[0]:+.3f})" if len(rli_vals) > 1 else ""
     else:
-        rli_vals = c_panel.dropna(subset=["Red_List_Index"])
-        rli_str = f"{rli_vals['Red_List_Index'].iloc[-1]:.3f}" if not rli_vals.empty else "Data Not Available"
-        rli_delta = f"({rli_vals['Red_List_Index'].iloc[-1] - rli_vals['Red_List_Index'].iloc[0]:+.3f})" if len(rli_vals) > 1 else ""
+        rli_str = "Data Not Available"
+        rli_delta = ""
 
     c_change_lbl = f"Annual Change ({snap})" if t_mode == "snapshot" else f"Net Change ({y0}–{y1})"
     c_sfx = "/yr" if t_mode == "snapshot" else ""

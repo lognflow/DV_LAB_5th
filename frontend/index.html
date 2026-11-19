@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
     <link rel="stylesheet" href="/static/css/dashboard.css?v=20261112c">
     <script src="/vendor/plotly.min.js"></script>
 </head>
+
 <body>
     <div id="app-shell" class="app-shell">
         <!-- COLLAPSIBLE LEFT SIDEBAR -->
@@ -22,7 +24,8 @@
                         <div class="brand-sub">Global Monitor 1990–2025</div>
                     </div>
                 </div>
-                <button id="btn-collapse-sidebar-inner" class="icon-btn" title="Hide Menu (Full Screen)" aria-label="Hide Menu">◀</button>
+                <button id="btn-collapse-sidebar-inner" class="icon-btn" title="Hide Menu (Full Screen)"
+                    aria-label="Hide Menu">◀</button>
             </div>
 
             <div class="sidebar-body">
@@ -71,23 +74,28 @@
                         <label class="control-label" for="rng-snapshot-year">Snapshot Year</label>
                         <span id="lbl-snapshot-year" class="value-badge">2020</span>
                     </div>
-                    <input type="range" id="rng-snapshot-year" class="form-range" min="1990" max="2025" value="2020" step="1">
-                    <div class="control-hint">Analyzes this exact single year across all metrics, maps &amp; rankings.</div>
+                    <input type="range" id="rng-snapshot-year" class="form-range" min="1990" max="2025" value="2020"
+                        step="1">
+                    <div class="control-hint">Analyzes this exact single year across all metrics, maps &amp; rankings.
+                    </div>
                 </div>
 
                 <!-- Deforestation Cause -->
                 <div class="control-group">
                     <label class="control-label" for="sel-cause">Deforestation Cause</label>
                     <select id="sel-cause" class="form-select"></select>
-                    <div id="cause-hint" class="control-hint">Changes cause maps, timelines, and country breakdowns.</div>
+                    <div id="cause-hint" class="control-hint">Changes cause maps, timelines, and country breakdowns.
+                    </div>
                 </div>
 
                 <!-- Measurement Unit -->
                 <div class="control-group">
                     <label class="control-label">Measurement Unit</label>
                     <div id="unit-radios" class="segmented-vertical">
-                        <button type="button" class="unit-btn active" data-unit="Million Hectares (Mha)">Million Hectares (Mha)</button>
-                        <button type="button" class="unit-btn" data-unit="Square Kilometers (km²)">Square Kilometers (km²)</button>
+                        <button type="button" class="unit-btn active" data-unit="Million Hectares (Mha)">Million
+                            Hectares (Mha)</button>
+                        <button type="button" class="unit-btn" data-unit="Square Kilometers (km²)">Square Kilometers
+                            (km²)</button>
                         <button type="button" class="unit-btn" data-unit="Hectares (ha)">Hectares (ha)</button>
                     </div>
                 </div>
@@ -117,7 +125,8 @@
                     </div>
                 </div>
                 <div class="top-bar-right">
-                    <button id="btn-browser-fullscreen" class="fullscreen-btn" title="Browser Full Screen">⛶ Full Screen</button>
+                    <button id="btn-browser-fullscreen" class="fullscreen-btn" title="Browser Full Screen">⛶ Full
+                        Screen</button>
                 </div>
             </header>
 
@@ -141,8 +150,10 @@
                 <div class="card map-card">
                     <div class="card-toolbar">
                         <div>
-                            <h2 class="card-title">Global Forest Change Heatmap (Hover Any Country for Decreased / Increased Status)</h2>
-                            <p class="card-subtitle">Red indicates forest loss (Decreased); green indicates forest gain (Increased). Click any country to open its detailed profile.</p>
+                            <h2 class="card-title">Global Forest Change Heatmap (Hover Any Country for Decreased /
+                                Increased Status)</h2>
+                            <p class="card-subtitle">Red indicates forest loss (Decreased); green indicates forest gain
+                                (Increased). Click any country to open its detailed profile.</p>
                         </div>
                         <div class="toolbar-controls">
                             <select id="sel-map-mode" class="form-select compact">
@@ -175,7 +186,6 @@
                         <div class="segmented-inline" id="treemap-mode-btns">
                             <button type="button" class="seg-btn active" data-val="loss">Forest Loss</button>
                             <button type="button" class="seg-btn" data-val="gain">Forest Expansion</button>
-                            <button type="button" class="seg-btn" data-val="stock">Current Forest Stock</button>
                         </div>
                     </div>
                     <div id="chart-overview-treemap" class="chart-box medium"></div>
@@ -188,7 +198,8 @@
                     <div class="card-toolbar">
                         <div>
                             <h2 id="cause-view-title" class="card-title">Cause-Driven Analytics</h2>
-                            <p id="cause-view-sub" class="card-subtitle">Select any cause from the left menu (or below) to switch to cause-isolated maps, rankings, and spike heatmaps.</p>
+                            <p id="cause-view-sub" class="card-subtitle">Select any cause from the left menu (or below)
+                                to switch to cause-isolated maps, rankings, and spike heatmaps.</p>
                         </div>
                         <div class="toolbar-controls">
                             <select id="sel-cause-inline" class="form-select"></select>
@@ -199,24 +210,42 @@
                 <!-- Mode A: All Causes -->
                 <div id="causes-all-view">
                     <div class="grid-2">
-                        <div class="card"><div id="chart-causes-pie" class="chart-box medium"></div></div>
-                        <div class="card"><div id="chart-causes-comm" class="chart-box medium"></div></div>
+                        <div class="card">
+                            <div id="chart-causes-pie" class="chart-box medium"></div>
+                        </div>
+                        <div class="card">
+                            <div id="chart-causes-comm" class="chart-box medium"></div>
+                        </div>
                     </div>
-                    <div class="card"><div id="chart-causes-stacked" class="chart-box medium"></div></div>
-                    <div class="card"><div id="chart-causes-sunburst" class="chart-box medium"></div></div>
+                    <div class="card">
+                        <div id="chart-causes-stacked" class="chart-box medium"></div>
+                    </div>
+                    <div class="card">
+                        <div id="chart-causes-sunburst" class="chart-box medium"></div>
+                    </div>
                 </div>
 
                 <!-- Mode B: Specific Cause Isolated -->
                 <div id="causes-specific-view" class="hidden">
                     <div class="grid-2-uneven">
-                        <div class="card"><div id="chart-cause-spec-map" class="chart-box tall"></div></div>
-                        <div class="card"><div id="chart-cause-spec-top" class="chart-box tall"></div></div>
+                        <div class="card">
+                            <div id="chart-cause-spec-map" class="chart-box tall"></div>
+                        </div>
+                        <div class="card">
+                            <div id="chart-cause-spec-top" class="chart-box tall"></div>
+                        </div>
                     </div>
                     <div class="grid-2">
-                        <div class="card"><div id="chart-cause-spec-traj" class="chart-box medium"></div></div>
-                        <div class="card"><div id="chart-cause-spec-share" class="chart-box medium"></div></div>
+                        <div class="card">
+                            <div id="chart-cause-spec-traj" class="chart-box medium"></div>
+                        </div>
+                        <div class="card">
+                            <div id="chart-cause-spec-share" class="chart-box medium"></div>
+                        </div>
                     </div>
-                    <div class="card"><div id="chart-cause-spec-heat" class="chart-box wide-heatmap"></div></div>
+                    <div class="card">
+                        <div id="chart-cause-spec-heat" class="chart-box wide-heatmap"></div>
+                    </div>
                     <div class="card">
                         <h3 class="card-title">Top 25 Countries Ranked by Selected Cause</h3>
                         <div id="cause-table-wrap" class="table-wrap"></div>
@@ -228,7 +257,8 @@
                     <div class="card-toolbar">
                         <div>
                             <h2 class="card-title">Multi-Country Side-by-Side Comparison</h2>
-                            <p class="card-subtitle">Compare up to 6 countries on driver profile and annual loss intensity spikes.</p>
+                            <p class="card-subtitle">Compare up to 6 countries on driver profile and annual loss
+                                intensity spikes.</p>
                         </div>
                     </div>
                     <div class="compare-picker">
@@ -255,15 +285,21 @@
                     <div class="card-toolbar">
                         <h2 class="card-title">Most Affected Countries &amp; Forest Recovery Leaders</h2>
                         <div class="toolbar-controls">
-                            <label class="control-label" for="rng-top-n">Top N Countries: <span id="lbl-top-n" class="value-badge">10</span></label>
-                            <input type="range" id="rng-top-n" class="form-range inline-range" min="5" max="25" value="10" step="1">
+                            <label class="control-label" for="rng-top-n">Top N Countries: <span id="lbl-top-n"
+                                    class="value-badge">10</span></label>
+                            <input type="range" id="rng-top-n" class="form-range inline-range" min="5" max="25"
+                                value="10" step="1">
                         </div>
                     </div>
                 </div>
 
                 <div class="grid-2">
-                    <div class="card"><div id="chart-hotspots-loss" class="chart-box tall"></div></div>
-                    <div class="card"><div id="chart-hotspots-gain" class="chart-box tall"></div></div>
+                    <div class="card">
+                        <div id="chart-hotspots-loss" class="chart-box tall"></div>
+                    </div>
+                    <div class="card">
+                        <div id="chart-hotspots-gain" class="chart-box tall"></div>
+                    </div>
                 </div>
             </section>
         </main>
@@ -271,5 +307,5 @@
 
     <script src="/static/js/dashboard.js?v=20261119d"></script>
 </body>
-</html>
 
+</html>

@@ -75,10 +75,6 @@ def preprocess():
     df_co2 = pd.read_csv(os.path.join(RAW_DIR, "annual_co2_land_use.csv"))
     df_co2 = df_co2.rename(columns={"Annual CO₂ emissions from land-use change": "CO2_Emissions_tonnes", "Code": "ISO3"})
 
-    # 6. Red List Index (IUCN)
-    df_rli = pd.read_csv(os.path.join(RAW_DIR, "red_list_index.csv"))
-    df_rli = df_rli.rename(columns={"Red List Index": "Red_List_Index", "Code": "ISO3"})
-
     # --- COUNTRY LEVEL PANEL (1990 - 2025) ---
     country_area = df_area[df_area["ISO3"].str.len() == 3].copy()
     country_area = country_area[~country_area["ISO3"].str.startswith("OWID", na=False)]
@@ -88,7 +84,6 @@ def preprocess():
     panel = panel.merge(df_exp[["ISO3", "Year", "Gross_Expansion_ha"]].dropna(subset=["ISO3"]), on=["ISO3", "Year"], how="left")
     panel = panel.merge(df_share[["ISO3", "Year", "Forest_Share_pct"]], on=["ISO3", "Year"], how="left")
     panel = panel.merge(df_co2[["ISO3", "Year", "CO2_Emissions_tonnes"]], on=["ISO3", "Year"], how="left")
-    panel = panel.merge(df_rli[["ISO3", "Year", "Red_List_Index"]], on=["ISO3", "Year"], how="left")
 
     # Merge continent info
     panel = panel.merge(geo_map, on="ISO3", how="left")
@@ -162,34 +157,6 @@ def preprocess():
     print(f"Saved global summary: {global_path} ({len(global_summary)} rows)")
 
     # --- REGIONAL COMPARISON (Continents with area-weighted share) ---
-    continents = ["Africa", "Asia", "Europe", "North America", "South America", "Oceania"]
-    reg_rows = []
-    for cont in continents:
-        sub = panel[panel["Continent"] == cont]
-        grouped = sub.groupby("Year").agg({
-            "Forest_Area_ha": "sum",
-            "Annual_Change_ha": "sum",
-            "CO2_Emissions_tonnes": "sum",
-            "Land_Area_ha": "sum"
-        }).reset_index()
-        grouped["Continent"] = cont
-        # Area-weighted forest share
-        grouped["Forest_Share_pct"] = np.where(
-            grouped["Land_Area_ha"] > 0,
-            (grouped["Forest_Area_ha"] / grouped["Land_Area_ha"]) * 100.0,
-            np.nan
-        )
-        reg_rows.append(grouped)
-
-    df_reg = pd.concat(reg_rows, ignore_index=True)
-    df_reg["Forest_Area_sqkm"] = df_reg["Forest_Area_ha"] / 100.0
-    df_reg["Forest_Area_Mha"] = df_reg["Forest_Area_ha"] / 1_000_000.0
-    df_reg["Annual_Change_Mha"] = df_reg["Annual_Change_ha"] / 1_000_000.0
-    df_reg["CO2_Emissions_Mt"] = df_reg["CO2_Emissions_tonnes"] / 1_000_000.0
-    reg_path = os.path.join(PROC_DIR, "regional_comparison.csv")
-    df_reg.to_csv(reg_path, index=False)
-    print(f"Saved regional comparison: {reg_path} ({len(df_reg)} rows)")
-
     # --- TREE COVER LOSS DRIVERS (Curtis et al. / GFW) ---
     df_drivers = pd.read_csv(os.path.join(RAW_DIR, "tree_cover_loss_by_dominant_driver.csv"))
     driver_cols = [
@@ -359,6 +326,8 @@ def preprocess():
     print(f"Saved metadata: {meta_path}")
     print("Preprocessing completed successfully!")
 
+
+run_preprocessing = preprocess
 
 if __name__ == "__main__":
     preprocess()

@@ -62,7 +62,7 @@ d:\DVLAB\
 ├── server.py                                    # FastAPI backend API & static frontend host
 ├── README.md                                    # Comprehensive documentation
 ├── frontend/                                    # Custom responsive HTML/CSS/JS dashboard UI
-│   ├── index.html                               # Executive 6-tab single-page interface
+│   ├── index.html                               # Executive single-page interface (Overview, Causes, Hotspots)
 │   ├── css/dashboard.css                        # Forest-green & crisp white high-contrast theme
 │   └── js/dashboard.js                          # Interactive Plotly.js controller & fullscreen logic
 ├── data/
@@ -75,16 +75,15 @@ d:\DVLAB\
 │   │   ├── drivers_deforestation_commodity.csv
 │   │   ├── forest_area_share_land.csv
 │   │   ├── annual_co2_land_use.csv
-│   │   ├── red_list_index.csv
 │   │   ├── country_regions.csv
-│   │   └── countries.geojson
+│   │   ├── countries.geojson
+│   │   └── india_soi_boundary.geojson           # Official Survey of India border
 │   └── processed/                               # Cleaned, standardized analysis panels & tables
-│       ├── country_forest_panel.csv             # Full country-level panel 1990–2025
-│       ├── global_forest_summary.csv            # World totals & decadal trajectory
-│       ├── regional_comparison.csv              # Continental comparisons (6 continents)
-│       ├── deforestation_drivers_processed.csv  # Curtis et al. drivers by country/region
-│       ├── commodity_drivers_processed.csv      # Agricultural commodities by country/region
-│       ├── country_hotspots.csv                 # Cumulative loss rankings & hotspot classifications
+│       ├── country_forest_panel.csv             # Full country-level panel 1990–2025 (8,460 rows)
+│       ├── global_forest_summary.csv            # World totals & decadal trajectory (36 rows)
+│       ├── deforestation_drivers_processed.csv  # Curtis et al. drivers by country/region (4,750 rows)
+│       ├── commodity_drivers_processed.csv      # Agricultural commodities by country/region (4,001 rows)
+│       ├── country_hotspots.csv                 # Cumulative loss rankings & hotspot classifications (235 rows)
 │       └── metadata_sources.json                # Complete audit trail & definition caveats
 ├── notebooks/                                   # 7 Fully implemented & executed Jupyter Notebooks (.ipynb)
 │   ├── 01_data_collection_and_preprocessing.ipynb
